@@ -1,0 +1,26 @@
+.head-item {
+    --padding-start: 0;
+}
+
+.player-wrapper {
+    position: relative;
+    padding-top: 56.25%
+}
+
+.react-player {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.counts {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.count {
+    --background: rgba(0, 0, 0, 0);
+    --color: var(--ion-color-medium);
+}

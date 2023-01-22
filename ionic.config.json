@@ -1,0 +1,7 @@
+{
+  "name": "debatecheck",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react"
+}
