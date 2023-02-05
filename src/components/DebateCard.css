@@ -2,9 +2,25 @@
     --padding-start: 0;
 }
 
+ion-card-header {
+    padding-bottom: 0;
+}
+
+ion-card-title {
+    margin-left: 55px;
+}
+
+ion-card-content {
+    margin-left: 55px;
+}
+
+.player-para {
+    margin-top: 16px;
+}
+
 .player-wrapper {
     position: relative;
-    padding-top: 56.25%
+    padding-top: 56.25%;
 }
 
 .react-player {

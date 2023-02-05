@@ -3,9 +3,10 @@ import { add } from 'ionicons/icons';
 import DebateAddModal from '../components/DebateAddModal';
 import DebateCard from '../components/DebateCard';
 import DebateHeader from '../components/DebateHeader';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './HomePage.css';
-import { AppData, IDebate } from '../AppData';
+import { AppData } from '../AppData';
+import { findUrl } from '../Utils';
 
 interface ContainerProps {
     appData: AppData;
@@ -13,21 +14,17 @@ interface ContainerProps {
 
 const HomePage: React.FC<ContainerProps> = ({ appData }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [debates, setDebates] = useState(new Array<IDebate>());
+    const [debates, setDebates] = useState(appData.debates());
 
-    appData.onDebatesUpdated(() => { setDebates(appData.debates()); });
-
-    const findUrl = (description: string) => {
-        const urlRegex = /(https?:\/\/[^ ]*)/g;
-        const match = description.match(urlRegex);
-        return match ? match[match.length - 1] : '';
-    }
+    useEffect(() => {
+        return appData.onDebatesUpdated(() => { setDebates(appData.debates()); });
+    }, []);
 
     return (
         <IonPage>
             <DebateHeader />
             <IonContent fullscreen>
-                {debates.map(d => <DebateCard username={d._identity.publicKey.slice(-8)} title={d.title} description={d.description} url={findUrl(d.description)} />)}
+                {debates.map(d => <DebateCard key={d._id} id={d._id} username={d._identity.publicKey.slice(-8)} title={d.title} description={d.description} url={findUrl(d.description)} />)}
             </IonContent>
             <IonFab slot="fixed" vertical="bottom" horizontal="end">
                 <IonFabButton onClick={() => setIsOpen(true)}>
