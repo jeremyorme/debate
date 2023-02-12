@@ -35,6 +35,7 @@ import '@ionic/react/css/display.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import './App.css';
 import { useState } from 'react';
 import MessagesPage from './pages/MessagesPage';
 
@@ -50,11 +51,15 @@ const App: React.FC = () => {
         if (!await dbClient.connect())
             return;
 
+        const publicKey = dbClient.publicKey();
+        if (!publicKey)
+            return;
+
         const db = await dbClient.db("debate-app");
         if (!db)
             return;
 
-        appData.init(db);
+        appData.init(db, publicKey);
     };
 
     return <IonApp>

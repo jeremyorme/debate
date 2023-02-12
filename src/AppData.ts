@@ -29,6 +29,16 @@ export interface IMessage extends IDbEntry {
     description: string;
 }
 
+export enum VoteDirection {
+    Undecided,
+    For,
+    Against
+}
+
+export interface IVote extends IDbEntry {
+    direction: VoteDirection;
+}
+
 const byClockDescending = (a: IDbEntry, b: IDbEntry) => b._clock - a._clock;
 
 // Handles collection entries and notifying updates
@@ -79,9 +89,11 @@ export class CollectionManager<TEntry> {
 // Central point for accessing all the app's data
 export class AppData {
     private _db: IDb | null = null;
+    private _publicKey: string | null = null;
 
-    async init(db: IDb) {
+    async init(db: IDb, publicKey: string) {
         this._db = db;
+        this._publicKey = publicKey;
         await this._loadDebates();
     }
 
@@ -141,5 +153,39 @@ export class AppData {
 
     addMessage(side: string, message: IMessage) {
         this._messages.get(side)?.addEntry(message);
+    }
+
+    // Votes
+
+    private _votes: CollectionManager<IVote> = new CollectionManager<IVote>();
+
+    async loadVotes(debateId: string) {
+        if (!this._db)
+            return;
+
+        const collectionName = 'debate-' + debateId + '-votes';
+        this._votes.init(await this._db.collection(collectionName, {
+            publicAccess: AccessRights.ReadAnyWriteOwn,
+            conflictResolution: ConflictResolution.LastWriteWins
+        }));
+    }
+
+    votes(): IVote[] {
+        return this._votes.entries() || [];
+    }
+
+    onVotes(callback: () => void) {
+        return this._votes.onUpdated(callback);
+    }
+
+    addVote(message: IVote) {
+        if (this._publicKey)
+            this._votes.addEntry({ ...message, _id: this._publicKey });
+    }
+
+    ownVoteDirection(): VoteDirection {
+        if (!this._publicKey)
+            return VoteDirection.Undecided;
+        return this._votes.entry(this._publicKey)?.direction || VoteDirection.Undecided;
     }
 }

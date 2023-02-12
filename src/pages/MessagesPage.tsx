@@ -1,8 +1,8 @@
-import { IonBackButton, IonButton, IonButtons, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
-import { arrowForwardSharp } from "ionicons/icons";
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
+import { arrowForwardSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { AppData, dbEntryDefaults, IMessage } from "../AppData";
+import { AppData, dbEntryDefaults, IMessage, IVote, VoteDirection } from "../AppData";
 import DebateCard from "../components/DebateCard";
 import { findUrl } from "../Utils";
 import './MessagesPage.css';
@@ -21,18 +21,27 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
     const [debateTitle, setDebateTitle] = useState(appData.debateTitle(id));
     const [messages, setMessages] = useState(appData.messages(side));
     const [description, setDescription] = useState('');
+    const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection());
 
     useEffect(() => {
         appData.loadMessages(id, side);
+        appData.loadVotes(id);
         return appData.onDebatesUpdated(() => {
             setDebateTitle(appData.debateTitle(id));
             appData.loadMessages(id, side);
+            appData.loadVotes(id);
         });
     }, []);
 
     useEffect(() => {
         return appData.onMessages(side, () => {
-            setMessages(appData.messages(side))
+            setMessages(appData.messages(side));
+        });
+    }, []);
+
+    useEffect(() => {
+        return appData.onVotes(() => {
+            setOwnVoteDirection(appData.ownVoteDirection());
         });
     }, []);
 
@@ -52,6 +61,16 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
         setDescription('');
     }
 
+    const updateOwnVoteDirection = (newDirection: VoteDirection) => {
+        const direction = newDirection != ownVoteDirection ? newDirection : VoteDirection.Undecided;
+        const vote: IVote = {
+            ...dbEntryDefaults,
+            direction
+        };
+        appData.addVote(vote);
+        setOwnVoteDirection(direction);
+    }
+
     return (
         <IonPage>
             <IonHeader>
@@ -60,24 +79,33 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
                         <IonBackButton defaultHref="/home" />
                     </IonButtons>
                     <IonTitle>{side.charAt(0).toUpperCase() + side.slice(1)}: {debateTitle}</IonTitle>
+                    <IonButtons slot="end">
+                        {side == 'against' ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
+                            <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
+                        </IonButton> : <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
+                            <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
+                        </IonButton>}
+                    </IonButtons>
                 </IonToolbar>
-                <IonGrid>
-                    <IonRow>
-                        <IonCol>
-                            <IonInput placeholder="What do you think?" value={description} onIonChange={e => updateDescription(e.detail.value)} />
-                        </IonCol>
-                        <IonCol size="auto">
-                            <IonButton fill="clear" disabled={description.length == 0} onClick={() => addMessage()}>
-                                <IonIcon icon={arrowForwardSharp} />
-                            </IonButton>
-                        </IonCol>
-                    </IonRow>
-                </IonGrid>
+                <IonCard>
+                    <IonGrid>
+                        <IonRow>
+                            <IonCol>
+                                <IonInput placeholder="What do you think?" value={description} onIonChange={e => updateDescription(e.detail.value)} />
+                            </IonCol>
+                            <IonCol size="auto">
+                                <IonButton size="small" fill="clear" disabled={description.length == 0} onClick={() => addMessage()}>
+                                    <IonIcon icon={arrowForwardSharp} />
+                                </IonButton>
+                            </IonCol>
+                        </IonRow>
+                    </IonGrid>
+                </IonCard>
             </IonHeader>
             <IonContent>
                 {messages.map(m => <DebateCard key={m._id} username={m._identity.publicKey.slice(-8)} description={m.description} url={findUrl(m.description)} />)}
             </IonContent>
-        </IonPage >
+        </IonPage>
     );
 };
 
