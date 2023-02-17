@@ -1,48 +1,26 @@
 import { IonAvatar, IonBadge, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonText, IonToolbar } from '@ionic/react';
-import './DebateCard.css';
+import './MessageCard.css';
 import ReactPlayer from 'react-player';
 import { heartSharp, peopleSharp, starSharp, thumbsDownSharp, thumbsUpSharp } from 'ionicons/icons';
 import { Link } from 'react-router-dom';
-import { useInView } from 'react-intersection-observer';
-import { useEffect, useState } from 'react';
-import { AppData } from '../AppData';
 
 interface ContainerProps {
-    appData: AppData,
-    id: string;
-    title: string;
+    id?: string;
+    title?: string;
     description: string;
     username: string;
     url: string;
 }
 
-const DebateCard: React.FC<ContainerProps> = ({ appData, id, title, description, username, url }) => {
-    const { ref, inView } = useInView();
-    const [votesFor, setVotesFor] = useState(appData.votesFor(id));
-    const [votesAgainst, setVotesAgainst] = useState(appData.votesAgainst(id));
-
-    useEffect(() => {
-        if (inView)
-            appData.loadVotes(id);
-        else
-            appData.closeVotes(id);
-    }, [inView]);
-
-    useEffect(() => {
-        return appData.onVotes(id, () => {
-            setVotesFor(appData.votesFor(id));
-            setVotesAgainst(appData.votesAgainst(id)); 
-        });
-    });
-
+const MessageCard: React.FC<ContainerProps> = ({ id, title, description, username, url }) => {
     return (
-        <IonCard ref={ref}>
+        <IonCard>
             <IonCardHeader>
                 <IonItem className="head-item" lines="none">
                     <IonAvatar slot="start"><img src="https://ionicframework.com/docs/img/demos/avatar.svg" /></IonAvatar>
                     <IonLabel color="medium"><strong>@{username}</strong> - Just now</IonLabel>
                 </IonItem>
-                <IonCardTitle>{title}</IonCardTitle>
+                {title ? <IonCardTitle>{title}</IonCardTitle> : null}
             </IonCardHeader>
             <IonCardContent>
                 <p>{description}</p>
@@ -54,18 +32,18 @@ const DebateCard: React.FC<ContainerProps> = ({ appData, id, title, description,
             </div> : null}
             <IonToolbar>
                 <IonItem className="counts">
-                    <IonItem>
+                    {id ? <IonItem>
                         <Link to={'/debate/' + id + '/messages/for'}>
                             <IonIcon size="small" icon={thumbsUpSharp} />
                         </Link>
-                        <IonBadge className="count">{votesFor}</IonBadge>
-                    </IonItem>
-                    <IonItem>
+                        <IonBadge className="count">11</IonBadge>
+                    </IonItem> : null}
+                    {id ? <IonItem>
                         <Link to={'/debate/' + id + '/messages/against'}>
                             <IonIcon size="small" icon={thumbsDownSharp} />
                         </Link>
-                        <IonBadge className="count">{votesAgainst}</IonBadge>
-                    </IonItem>
+                        <IonBadge className="count">11</IonBadge>
+                    </IonItem> : null}
                     <IonItem>
                         <IonIcon size="small" icon={starSharp} />
                         <IonBadge className="count">11</IonBadge>
@@ -84,4 +62,4 @@ const DebateCard: React.FC<ContainerProps> = ({ appData, id, title, description,
     );
 };
 
-export default DebateCard;
+export default MessageCard;

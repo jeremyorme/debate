@@ -53,6 +53,14 @@ export class CollectionManager<TEntry> {
         this._notifyUpdated();
     }
 
+    ready(): boolean {
+        return !!this._collection;
+    }
+
+    close() {
+        this._collection?.close();
+    }
+
     private _notifyUpdated() {
         if (!this._collection)
             return;
@@ -157,35 +165,60 @@ export class AppData {
 
     // Votes
 
-    private _votes: CollectionManager<IVote> = new CollectionManager<IVote>();
+    private _votes: Map<string, CollectionManager<IVote>> = new Map();
+
+    private _votesCollection(debateId: string): CollectionManager<IVote> {
+        let votesCollection = this._votes.get(debateId);
+        if (!votesCollection) {
+            votesCollection = new CollectionManager<IVote>();
+            this._votes.set(debateId, votesCollection);
+        }
+        return votesCollection;
+    }
 
     async loadVotes(debateId: string) {
         if (!this._db)
             return;
 
         const collectionName = 'debate-' + debateId + '-votes';
-        this._votes.init(await this._db.collection(collectionName, {
+        const collection = this._votesCollection(debateId);
+        if (collection.ready())
+            return;
+        collection.init(await this._db.collection(collectionName, {
             publicAccess: AccessRights.ReadAnyWriteOwn,
             conflictResolution: ConflictResolution.LastWriteWins
         }));
     }
 
-    votes(): IVote[] {
-        return this._votes.entries() || [];
+    closeVotes(debateId: string) {
+        this._votesCollection(debateId).close();
+        this._votes.delete(debateId);
     }
 
-    onVotes(callback: () => void) {
-        return this._votes.onUpdated(callback);
+    votes(debateId: string): IVote[] {
+        return this._votesCollection(debateId).entries() || [];
     }
 
-    addVote(message: IVote) {
+    onVotes(debateId: string, callback: () => void) {
+        return this._votesCollection(debateId).onUpdated(callback);
+    }
+
+    addVote(debateId: string, message: IVote) {
         if (this._publicKey)
-            this._votes.addEntry({ ...message, _id: this._publicKey });
+            this._votesCollection(debateId).addEntry({ ...message, _id: this._publicKey });
     }
 
-    ownVoteDirection(): VoteDirection {
+    ownVoteDirection(debateId: string): VoteDirection {
         if (!this._publicKey)
             return VoteDirection.Undecided;
-        return this._votes.entry(this._publicKey)?.direction || VoteDirection.Undecided;
+        return this._votesCollection(debateId).entry(this._publicKey)?.direction || VoteDirection.Undecided;
+    }
+
+    votesFor(debateId: string): number {
+        return this.votes(debateId).reduce((c, v) => c + v.direction == VoteDirection.For ? 1 : 0, 0);
+    }
+
+    votesAgainst(debateId: string): number {
+        return this.votes(debateId).reduce((c, v) => c + v.direction == VoteDirection.Against ? 1 : 0, 0);
     }
 }

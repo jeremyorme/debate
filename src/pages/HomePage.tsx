@@ -24,7 +24,7 @@ const HomePage: React.FC<ContainerProps> = ({ appData }) => {
         <IonPage>
             <DebateHeader />
             <IonContent fullscreen>
-                {debates.map(d => <DebateCard key={d._id} id={d._id} username={d._identity.publicKey.slice(-8)} title={d.title} description={d.description} url={findUrl(d.description)} />)}
+                {debates.map(d => <DebateCard key={d._id} appData={appData} id={d._id} username={d._identity.publicKey.slice(-8)} title={d.title} description={d.description} url={findUrl(d.description)} />)}
             </IonContent>
             <IonFab slot="fixed" vertical="bottom" horizontal="end">
                 <IonFabButton onClick={() => setIsOpen(true)}>

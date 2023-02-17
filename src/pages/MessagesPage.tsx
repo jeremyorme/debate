@@ -3,7 +3,7 @@ import { arrowForwardSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline,
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { AppData, dbEntryDefaults, IMessage, IVote, VoteDirection } from "../AppData";
-import DebateCard from "../components/DebateCard";
+import MessageCard from "../components/MessageCard";
 import { findUrl } from "../Utils";
 import './MessagesPage.css';
 
@@ -21,7 +21,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
     const [debateTitle, setDebateTitle] = useState(appData.debateTitle(id));
     const [messages, setMessages] = useState(appData.messages(side));
     const [description, setDescription] = useState('');
-    const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection());
+    const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection(id));
 
     useEffect(() => {
         appData.loadMessages(id, side);
@@ -40,8 +40,8 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
     }, []);
 
     useEffect(() => {
-        return appData.onVotes(() => {
-            setOwnVoteDirection(appData.ownVoteDirection());
+        return appData.onVotes(id, () => {
+            setOwnVoteDirection(appData.ownVoteDirection(id));
         });
     }, []);
 
@@ -67,7 +67,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
             ...dbEntryDefaults,
             direction
         };
-        appData.addVote(vote);
+        appData.addVote(id, vote);
         setOwnVoteDirection(direction);
     }
 
@@ -103,7 +103,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
                 </IonCard>
             </IonHeader>
             <IonContent>
-                {messages.map(m => <DebateCard key={m._id} username={m._identity.publicKey.slice(-8)} description={m.description} url={findUrl(m.description)} />)}
+                {messages.map(m => <MessageCard key={m._id} username={m._identity.publicKey.slice(-8)} description={m.description} url={findUrl(m.description)} />)}
             </IonContent>
         </IonPage>
     );
