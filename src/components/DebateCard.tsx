@@ -1,4 +1,4 @@
-import { IonAvatar, IonBadge, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonText, IonToolbar } from '@ionic/react';
+import { IonAvatar, IonBadge, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonToolbar } from '@ionic/react';
 import './DebateCard.css';
 import ReactPlayer from 'react-player';
 import { heartSharp, peopleSharp, starSharp, thumbsDownSharp, thumbsUpSharp } from 'ionicons/icons';
@@ -16,22 +16,24 @@ interface ContainerProps {
     url: string;
 }
 
+const PAGE_ID = 'debate-card';
+
 const DebateCard: React.FC<ContainerProps> = ({ appData, id, title, description, username, url }) => {
     const { ref, inView } = useInView();
-    const [votesFor, setVotesFor] = useState(appData.votesFor(id));
-    const [votesAgainst, setVotesAgainst] = useState(appData.votesAgainst(id));
+    const [votesFor, setVotesFor] = useState(appData.votesFor(id, PAGE_ID));
+    const [votesAgainst, setVotesAgainst] = useState(appData.votesAgainst(id, PAGE_ID));
 
     useEffect(() => {
         if (inView)
-            appData.loadVotes(id);
+            appData.loadVotes(id, PAGE_ID);
         else
-            appData.closeVotes(id);
+            appData.closeVotes(id, PAGE_ID);
     }, [inView]);
 
     useEffect(() => {
-        return appData.onVotes(id, () => {
-            setVotesFor(appData.votesFor(id));
-            setVotesAgainst(appData.votesAgainst(id)); 
+        return appData.onVotes(id, PAGE_ID, () => {
+            setVotesFor(appData.votesFor(id, PAGE_ID));
+            setVotesAgainst(appData.votesAgainst(id, PAGE_ID));
         });
     });
 

@@ -16,20 +16,22 @@ interface ContainerParams {
     side: string;
 }
 
+const PAGE_ID = 'messages-page';
+
 const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
     const { id, side } = useParams<ContainerParams>();
     const [debateTitle, setDebateTitle] = useState(appData.debateTitle(id));
     const [messages, setMessages] = useState(appData.messages(side));
     const [description, setDescription] = useState('');
-    const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection(id));
+    const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection(id, PAGE_ID));
 
     useEffect(() => {
         appData.loadMessages(id, side);
-        appData.loadVotes(id);
+        appData.loadVotes(id, PAGE_ID);
         return appData.onDebatesUpdated(() => {
             setDebateTitle(appData.debateTitle(id));
             appData.loadMessages(id, side);
-            appData.loadVotes(id);
+            appData.loadVotes(id, PAGE_ID);
         });
     }, []);
 
@@ -40,8 +42,8 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
     }, []);
 
     useEffect(() => {
-        return appData.onVotes(id, () => {
-            setOwnVoteDirection(appData.ownVoteDirection(id));
+        return appData.onVotes(id, PAGE_ID, () => {
+            setOwnVoteDirection(appData.ownVoteDirection(id, PAGE_ID));
         });
     }, []);
 
@@ -67,7 +69,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
             ...dbEntryDefaults,
             direction
         };
-        appData.addVote(id, vote);
+        appData.addVote(id, PAGE_ID, vote);
         setOwnVoteDirection(direction);
     }
 
