@@ -39,6 +39,11 @@ export interface IVote extends IDbEntry {
     direction: VoteDirection;
 }
 
+export interface IPresentation extends IDbEntry {
+    title: string;
+    url: string;
+}
+
 const byClockDescending = (a: IDbEntry, b: IDbEntry) => b._clock - a._clock;
 
 // Handles collection entries and notifying updates
@@ -221,5 +226,33 @@ export class AppData {
 
     votesAgainst(debateId: string, pageId: string): number {
         return this.votes(debateId, pageId).reduce((c, v) => c + v.direction == VoteDirection.Against ? 1 : 0, 0);
+    }
+
+    // Presentations
+
+    private _presentations: CollectionManager<IPresentation> = new CollectionManager<IPresentation>();
+
+    async loadPresentations(debateId: string) {
+        if (!this._db)
+            return;
+
+        const collectionName = 'debate-' + debateId + '-presentations';
+        this._presentations.init(await this._db.collection(collectionName, {
+            publicAccess: AccessRights.ReadAnyWriteOwn,
+            conflictResolution: ConflictResolution.LastWriteWins
+        }));
+    }
+
+    presentations(): IPresentation[] {
+        return this._presentations.entries() || [];
+    }
+
+    onPresentations(callback: () => void) {
+        return this._presentations.onUpdated(callback);
+    }
+
+    addPresentation(presentation: IPresentation) {
+        if (this._publicKey)
+            this._presentations.addEntry({ ...presentation, _id: this._publicKey });
     }
 }

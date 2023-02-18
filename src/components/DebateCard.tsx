@@ -1,7 +1,7 @@
 import { IonAvatar, IonBadge, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonToolbar } from '@ionic/react';
 import './DebateCard.css';
 import ReactPlayer from 'react-player';
-import { heartSharp, peopleSharp, starSharp, thumbsDownSharp, thumbsUpSharp } from 'ionicons/icons';
+import { heartSharp, peopleSharp, thumbsDownSharp, thumbsUpSharp, videocamSharp } from 'ionicons/icons';
 import { Link } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { useEffect, useState } from 'react';
@@ -69,7 +69,9 @@ const DebateCard: React.FC<ContainerProps> = ({ appData, id, title, description,
                         <IonBadge className="count">{votesAgainst}</IonBadge>
                     </IonItem>
                     <IonItem>
-                        <IonIcon size="small" icon={starSharp} />
+                        <Link to={'/debate/' + id + '/presentations'}>
+                            <IonIcon size="small" icon={videocamSharp} />
+                        </Link>
                         <IonBadge className="count">11</IonBadge>
                     </IonItem>
                     <IonItem>
