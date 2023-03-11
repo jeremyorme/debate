@@ -6,19 +6,17 @@ import { Link } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { useEffect, useState } from 'react';
 import { AppData } from '../AppData';
+import { findUrl } from '../Utils';
 
 interface ContainerProps {
     appData: AppData,
     id: string;
-    title: string;
-    description: string;
-    username: string;
-    url: string;
 }
 
 const PAGE_ID = 'debate-card';
 
-const DebateCard: React.FC<ContainerProps> = ({ appData, id, title, description, username, url }) => {
+const DebateCard: React.FC<ContainerProps> = ({ appData, id }) => {
+    const [debate] = useState(appData.debate(id));
     const { ref, inView } = useInView();
     const [votesFor, setVotesFor] = useState(appData.votesFor(id, PAGE_ID));
     const [votesAgainst, setVotesAgainst] = useState(appData.votesAgainst(id, PAGE_ID));
@@ -37,17 +35,22 @@ const DebateCard: React.FC<ContainerProps> = ({ appData, id, title, description,
         });
     });
 
+    if (!debate)
+        return null;
+
+    const url = findUrl(debate.description);
+
     return (
         <IonCard ref={ref}>
             <IonCardHeader>
                 <IonItem className="head-item" lines="none">
                     <IonAvatar slot="start"><img src="https://ionicframework.com/docs/img/demos/avatar.svg" /></IonAvatar>
-                    <IonLabel color="medium"><strong>@{username}</strong> - Just now</IonLabel>
+                    <IonLabel color="medium"><strong>@{debate._identity.publicKey.slice(-8)}</strong> - Just now</IonLabel>
                 </IonItem>
-                <IonCardTitle>{title}</IonCardTitle>
+                <IonCardTitle>{debate.title}</IonCardTitle>
             </IonCardHeader>
             <IonCardContent>
-                <p>{description}</p>
+                <p>{debate.description}</p>
             </IonCardContent>
             {url && ReactPlayer.canPlay(url) ? <div className="player-para">
                 <div className='player-wrapper'>

@@ -1,12 +1,10 @@
-import { IonContent, IonFab, IonFabButton, IonIcon, IonPage } from '@ionic/react';
-import { add } from 'ionicons/icons';
+import { IonAvatar, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonPage, IonToolbar } from '@ionic/react';
+import { add, chatbubbles } from 'ionicons/icons';
 import DebateAddModal from '../components/DebateAddModal';
 import DebateCard from '../components/DebateCard';
-import DebateHeader from '../components/DebateHeader';
 import { useEffect, useState } from 'react';
 import './HomePage.css';
 import { AppData } from '../AppData';
-import { findUrl } from '../Utils';
 
 interface ContainerProps {
     appData: AppData;
@@ -17,14 +15,28 @@ const HomePage: React.FC<ContainerProps> = ({ appData }) => {
     const [debates, setDebates] = useState(appData.debates());
 
     useEffect(() => {
+        appData.loadDebates();
+        return appData.onInit(() => {
+            appData.loadDebates();
+        });
+    }, []);
+
+    useEffect(() => {
         return appData.onDebatesUpdated(() => { setDebates(appData.debates()); });
     }, []);
 
     return (
         <IonPage>
-            <DebateHeader />
+            <IonHeader>
+                <IonToolbar>
+                    <IonItem>
+                        <IonAvatar slot="start"><img src="https://ionicframework.com/docs/img/demos/avatar.svg" /></IonAvatar>
+                        <IonIcon className="app-icon" icon={chatbubbles}></IonIcon>
+                    </IonItem>
+                </IonToolbar>
+            </IonHeader>
             <IonContent fullscreen>
-                {debates.map(d => <DebateCard key={d._id} appData={appData} id={d._id} username={d._identity.publicKey.slice(-8)} title={d.title} description={d.description} url={findUrl(d.description)} />)}
+                {debates.map(d => <DebateCard key={d._id} appData={appData} id={d._id} />)}
             </IonContent>
             <IonFab slot="fixed" vertical="bottom" horizontal="end">
                 <IonFabButton onClick={() => setIsOpen(true)}>

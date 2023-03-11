@@ -1,5 +1,5 @@
 import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
-import { addSharp, arrowForwardSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
+import { addSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppData, dbEntryDefaults, IPresentation, IVote, VoteDirection } from "../AppData";
@@ -18,17 +18,26 @@ const PAGE_ID = 'presentations-page';
 
 const PresentationsPage: React.FC<ContainerProps> = ({ appData }) => {
     const { id } = useParams<ContainerParams>();
-    const [debateTitle, setDebateTitle] = useState(appData.debateTitle(id));
+    const getDebateTitle = () => appData.debate(id)?.title || '<< Loading >>';
+
+    const [debateTitle, setDebateTitle] = useState(getDebateTitle());
     const [presentations, setPresentations] = useState(appData.presentations());
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
     const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection(id, PAGE_ID));
 
     useEffect(() => {
+        appData.loadDebates();
+        return appData.onInit(() => {
+            appData.loadDebates();
+        });
+    }, []);
+
+    useEffect(() => {
         appData.loadPresentations(id);
         appData.loadVotes(id, PAGE_ID);
         return appData.onDebatesUpdated(() => {
-            setDebateTitle(appData.debateTitle(id));
+            setDebateTitle(getDebateTitle());
             appData.loadPresentations(id);
             appData.loadVotes(id, PAGE_ID);
         });
@@ -69,7 +78,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ appData }) => {
         appData.addPresentation(presentation);
         setTitle('');
         setUrl('');
-    }
+    };
 
     const updateOwnVoteDirection = (newDirection: VoteDirection) => {
         const direction = newDirection != ownVoteDirection ? newDirection : VoteDirection.Undecided;
@@ -79,7 +88,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ appData }) => {
         };
         appData.addVote(id, PAGE_ID, vote);
         setOwnVoteDirection(direction);
-    }
+    };
 
     return (
         <IonPage>

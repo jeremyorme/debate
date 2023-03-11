@@ -44,12 +44,38 @@ export interface IPresentation extends IDbEntry {
     url: string;
 }
 
+const makeCollectionKey = (debateId: string, pageId: string) => {
+    return `${debateId}:${pageId}`;
+}
+
 const byClockDescending = (a: IDbEntry, b: IDbEntry) => b._clock - a._clock;
+
+// Holds callbacks and notifies them
+class Callbacks {
+    private _callbacks: (() => void)[] = [];
+
+    notify() {
+        for (const cb of this._callbacks)
+            cb();
+    }
+
+    on(callback: () => void) {
+        // Add the updated callback
+        this._callbacks.push(callback);
+
+        // Return a callback that removes the updated callback
+        return () => {
+            const index = this._callbacks.indexOf(callback);
+            if (index > -1)
+                this._callbacks.splice(index, 1);
+        }
+    }
+}
 
 // Handles collection entries and notifying updates
 export class CollectionManager<TEntry> {
     private _collection: IDbCollection | null = null;
-    private _callbacks: (() => void)[] = [];
+    private _callbacks: Callbacks = new Callbacks();
     private _entries: TEntry[] = [];
 
     init(dbCollection: IDbCollection) {
@@ -65,14 +91,14 @@ export class CollectionManager<TEntry> {
     close() {
         this._collection?.close();
         this._collection = null;
+        this._entries = [];
     }
 
     private _notifyUpdated() {
         if (!this._collection)
             return;
         this._entries = Array.from(this._collection.all).map(kvp => kvp[1]).sort(byClockDescending);
-        for (const cb of this._callbacks)
-            cb();
+        this._callbacks.notify();
     }
 
     entry(id: string): TEntry | null {
@@ -84,15 +110,7 @@ export class CollectionManager<TEntry> {
     }
 
     onUpdated(callback: () => void) {
-        // Add the updated callback
-        this._callbacks.push(callback);
-
-        // Return a callback that removes the updated callback
-        return () => {
-            const index = this._callbacks.indexOf(callback);
-            if (index > -1)
-                this._callbacks.splice(index, 1);
-        }
+        return this._callbacks.on(callback);
     }
 
     addEntry(entry: TEntry) {
@@ -103,19 +121,24 @@ export class CollectionManager<TEntry> {
 // Central point for accessing all the app's data
 export class AppData {
     private _db: IDb | null = null;
-    private _publicKey: string | null = null;
+    private _selfPublicKey: string | null = null;
+    private _callbacks: Callbacks = new Callbacks();
 
-    async init(db: IDb, publicKey: string) {
+    async init(db: IDb, selfPublicKey: string) {
         this._db = db;
-        this._publicKey = publicKey;
-        await this._loadDebates();
+        this._selfPublicKey = selfPublicKey;
+        this._callbacks.notify();
+    }
+
+    onInit(callback: () => void) {
+        return this._callbacks.on(callback);
     }
 
     // Debates
 
     private _debates: CollectionManager<IDebate> = new CollectionManager<IDebate>();
 
-    private async _loadDebates() {
+    async loadDebates() {
         if (!this._db)
             return;
 
@@ -137,8 +160,8 @@ export class AppData {
         this._debates.addEntry(debate);
     }
 
-    debateTitle(debateId: string): string {
-        return this._debates.entry(debateId)?.title || '<< Loading >>';
+    debate(debateId: string): IDebate | null {
+        return this._debates.entry(debateId);
     }
 
     // Messages
@@ -174,7 +197,7 @@ export class AppData {
     private _votes: Map<string, CollectionManager<IVote>> = new Map();
 
     private _votesCollection(debateId: string, pageId: string): CollectionManager<IVote> {
-        const key = debateId + ':' + pageId;
+        const key = makeCollectionKey(debateId, pageId);
         let votesCollection = this._votes.get(key);
         if (!votesCollection) {
             votesCollection = new CollectionManager<IVote>();
@@ -198,7 +221,9 @@ export class AppData {
     }
 
     closeVotes(debateId: string, pageId: string) {
-        this._votesCollection(debateId, pageId).close();
+        const key = makeCollectionKey(debateId, pageId);
+        this._votes.get(key)?.close();
+        this._votes.delete(key);
     }
 
     votes(debateId: string, pageId: string): IVote[] {
@@ -210,14 +235,14 @@ export class AppData {
     }
 
     addVote(debateId: string, pageId: string, message: IVote) {
-        if (this._publicKey)
-            this._votesCollection(debateId, pageId).addEntry({ ...message, _id: this._publicKey });
+        if (this._selfPublicKey)
+            this._votesCollection(debateId, pageId).addEntry({ ...message, _id: this._selfPublicKey });
     }
 
     ownVoteDirection(debateId: string, pageId: string): VoteDirection {
-        if (!this._publicKey)
+        if (!this._selfPublicKey)
             return VoteDirection.Undecided;
-        return this._votesCollection(debateId, pageId).entry(this._publicKey)?.direction || VoteDirection.Undecided;
+        return this._votesCollection(debateId, pageId).entry(this._selfPublicKey)?.direction || VoteDirection.Undecided;
     }
 
     votesFor(debateId: string, pageId: string): number {
@@ -252,7 +277,7 @@ export class AppData {
     }
 
     addPresentation(presentation: IPresentation) {
-        if (this._publicKey)
-            this._presentations.addEntry({ ...presentation, _id: this._publicKey });
+        if (this._selfPublicKey)
+            this._presentations.addEntry({ ...presentation, _id: this._selfPublicKey });
     }
 }

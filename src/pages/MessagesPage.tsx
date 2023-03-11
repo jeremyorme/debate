@@ -20,16 +20,23 @@ const PAGE_ID = 'messages-page';
 
 const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
     const { id, side } = useParams<ContainerParams>();
-    const [debateTitle, setDebateTitle] = useState(appData.debateTitle(id));
+    const getDebateTitle = () => appData.debate(id)?.title || '<< Loading >>';
+
+    const [debateTitle, setDebateTitle] = useState(getDebateTitle());
     const [messages, setMessages] = useState(appData.messages(side));
     const [description, setDescription] = useState('');
     const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection(id, PAGE_ID));
 
     useEffect(() => {
-        appData.loadMessages(id, side);
-        appData.loadVotes(id, PAGE_ID);
+        appData.loadDebates();
+        return appData.onInit(() => {
+            appData.loadDebates();
+        });
+    }, []);
+
+    useEffect(() => {
         return appData.onDebatesUpdated(() => {
-            setDebateTitle(appData.debateTitle(id));
+            setDebateTitle(getDebateTitle());
             appData.loadMessages(id, side);
             appData.loadVotes(id, PAGE_ID);
         });
@@ -61,7 +68,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
         };
         appData.addMessage(side, message);
         setDescription('');
-    }
+    };
 
     const updateOwnVoteDirection = (newDirection: VoteDirection) => {
         const direction = newDirection != ownVoteDirection ? newDirection : VoteDirection.Undecided;
@@ -71,7 +78,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
         };
         appData.addVote(id, PAGE_ID, vote);
         setOwnVoteDirection(direction);
-    }
+    };
 
     return (
         <IonPage>
