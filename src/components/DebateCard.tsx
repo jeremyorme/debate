@@ -13,8 +13,6 @@ interface ContainerProps {
     id: string;
 }
 
-const PAGE_ID = 'debate-card';
-
 const DebateCard: React.FC<ContainerProps> = ({ pageData, id }) => {
     const [debate] = useState(pageData.debates.entry(id));
     const { ref, inView } = useInView();
