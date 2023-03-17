@@ -4,25 +4,24 @@ import DebateAddModal from '../components/DebateAddModal';
 import DebateCard from '../components/DebateCard';
 import { useEffect, useState } from 'react';
 import './HomePage.css';
-import { AppData } from '../AppData';
+import { PageData } from '../AppData';
 
 interface ContainerProps {
-    appData: AppData;
+    pageData: PageData;
 }
 
-const HomePage: React.FC<ContainerProps> = ({ appData }) => {
+const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [debates, setDebates] = useState(appData.debates());
+    const [debates, setDebates] = useState(pageData.debates.entries());
 
     useEffect(() => {
-        appData.loadDebates();
-        return appData.onInit(() => {
-            appData.loadDebates();
+        return pageData.onInit(() => {
+            pageData.debates.load();
         });
     }, []);
 
     useEffect(() => {
-        return appData.onDebatesUpdated(() => { setDebates(appData.debates()); });
+        return pageData.debates.onUpdated(() => { setDebates(pageData.debates.entries()); });
     }, []);
 
     return (
@@ -36,14 +35,14 @@ const HomePage: React.FC<ContainerProps> = ({ appData }) => {
                 </IonToolbar>
             </IonHeader>
             <IonContent fullscreen>
-                {debates.map(d => <DebateCard key={d._id} appData={appData} id={d._id} />)}
+                {debates.map(d => <DebateCard key={d._id} pageData={pageData} id={d._id} />)}
             </IonContent>
             <IonFab slot="fixed" vertical="bottom" horizontal="end">
                 <IonFabButton onClick={() => setIsOpen(true)}>
                     <IonIcon icon={add} />
                 </IonFabButton>
             </IonFab>
-            <DebateAddModal appData={appData} isOpen={isOpen} setIsOpen={setIsOpen} />
+            <DebateAddModal pageData={pageData} isOpen={isOpen} setIsOpen={setIsOpen} />
         </IonPage>
     );
 };

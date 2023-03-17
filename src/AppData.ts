@@ -1,4 +1,4 @@
-import { AccessRights, ConflictResolution, IDb, IDbCollection } from "bonono-react";
+import { AccessRights, ConflictResolution, ICollectionOptions, IDb, IDbCollection } from "bonono-react";
 
 export interface IGroup {
     name: string;
@@ -42,10 +42,6 @@ export interface IVote extends IDbEntry {
 export interface IPresentation extends IDbEntry {
     title: string;
     url: string;
-}
-
-const makeCollectionKey = (debateId: string, pageId: string) => {
-    return `${debateId}:${pageId}`;
 }
 
 const byClockDescending = (a: IDbEntry, b: IDbEntry) => b._clock - a._clock;
@@ -106,7 +102,7 @@ export class CollectionManager<TEntry> {
     }
 
     entries(): TEntry[] {
-        return this._entries || [];
+        return this._entries;
     }
 
     onUpdated(callback: () => void) {
@@ -114,170 +110,195 @@ export class CollectionManager<TEntry> {
     }
 
     addEntry(entry: TEntry) {
-        this._collection?.insertOne(entry);
+        return this._collection?.insertOne(entry);
     }
 }
 
+export class Collection<TEntry>
+{
+    private _db: IDb | null = null;
+    private _manager: CollectionManager<TEntry> = new CollectionManager();
+
+    constructor(private _name: string, private _options: Partial<ICollectionOptions>) { }
+
+    init(db: IDb) {
+        this._db = db;
+    }
+
+    async load() {
+        if (!this._db)
+            return;
+
+        this._manager.init(await this._db.collection(this._name, this._options));
+    }
+
+    entries(): TEntry[] {
+        return this._manager.entries();
+    }
+
+    onUpdated(callback: () => void) {
+        return this._manager.onUpdated(callback);
+    }
+
+    addEntry(entry: TEntry) {
+        this._manager.addEntry(entry);
+    }
+
+    entry(id: string): TEntry | null {
+        return this._manager.entry(id);
+    }
+}
+
+export class SubCollection<TEntry>
+{
+    private _db: IDb | null = null;
+    private _selfPublicKey: string | null = null;
+    private _managers: Map<string, CollectionManager<TEntry>> = new Map();
+
+    constructor(
+        private _name: string,
+        private _subName: string,
+        private _options: Partial<ICollectionOptions>,
+        private _singular: boolean = false) { }
+
+    init(db: IDb, selfPublicKey: string) {
+        this._db = db;
+        this._selfPublicKey = selfPublicKey;
+    }
+
+    private _manager(id: string): CollectionManager<TEntry> {
+        let manager = this._managers.get(id);
+        if (!manager) {
+            manager = new CollectionManager();
+            this._managers.set(id, manager);
+        }
+        return manager;
+    }
+
+    async load(id: string, lowerClock: number = 0, creatorPublicKey: string | null = null) {
+        if (!this._db)
+            return;
+
+        const manager = this._manager(id);
+        if (manager.ready())
+            return;
+
+        const collectionName = `${this._name}-${id}-${this._subName}`;
+        manager.init(await this._db.collection(collectionName,
+            creatorPublicKey ?
+                { ...this._options, lowerClock, creatorPublicKey } :
+                { ...this._options, lowerClock }));
+    }
+
+    close(id: string) {
+        this._managers.get(id)?.close();
+        this._managers.delete(id);
+    }
+
+    entries(id: string): TEntry[] {
+        return this._manager(id).entries() || [];
+    }
+
+    onUpdated(id: string, callback: () => void) {
+        return this._manager(id).onUpdated(callback);
+    }
+
+    addEntry(id: string, entry: TEntry) {
+        const e: any = { ...entry };
+        if (this._options.publicAccess == AccessRights.ReadAnyWriteOwn && this._selfPublicKey)
+            e._id = this._selfPublicKey;
+        else if (this._singular)
+            e._id = 'default';
+
+        return this._manager(id).addEntry(e);
+    }
+
+    entry(id: string, subId: string = 'default'): TEntry | null {
+        return this._manager(id).entry(subId);
+    }
+}
+
+const everyoneAppend = {
+    publicAccess: AccessRights.ReadWrite,
+    conflictResolution: ConflictResolution.FirstWriteWins
+};
+
+const everyoneUpdateOwn = {
+    publicAccess: AccessRights.ReadAnyWriteOwn,
+    conflictResolution: ConflictResolution.LastWriteWins
+};
+
+const selfWriteOnce = {
+    publicAccess: AccessRights.Read,
+    conflictResolution: ConflictResolution.FirstWriteWins
+};
+
 // Central point for accessing all the app's data
 export class AppData {
+    private _home: PageData = new PageData();
+    private _messages: PageData = new PageData();
+    private _presentations: PageData = new PageData();
+
+    init(db: IDb, selfPublicKey: string) {
+        this._home.init(db, selfPublicKey);
+        this._messages.init(db, selfPublicKey);
+        this._presentations.init(db, selfPublicKey);
+    }
+
+    get home() { return this._home; }
+    get messages() { return this._messages; }
+    get presentations() { return this._presentations; }
+}
+
+export class PageData {
     private _db: IDb | null = null;
     private _selfPublicKey: string | null = null;
     private _callbacks: Callbacks = new Callbacks();
+    private _debates: Collection<IDebate> = new Collection('debate', everyoneAppend);
+    private _messagesFor: SubCollection<IMessage> = new SubCollection('debate', 'messages-for', everyoneAppend);
+    private _messagesAgainst: SubCollection<IMessage> = new SubCollection('debate', 'messages-against', everyoneAppend);
+    private _presentations: SubCollection<IPresentation> = new SubCollection('debate', 'presentations', everyoneUpdateOwn);
+    private _votes: SubCollection<IVote> = new SubCollection('debate', 'votes', everyoneUpdateOwn);
 
-    async init(db: IDb, selfPublicKey: string) {
+    init(db: IDb, selfPublicKey: string) {
         this._db = db;
         this._selfPublicKey = selfPublicKey;
+        this._debates.init(db);
+        this._messagesFor.init(db, selfPublicKey);
+        this._messagesAgainst.init(db, selfPublicKey);
+        this._presentations.init(db, selfPublicKey);
+        this._votes.init(db, selfPublicKey);
         this._callbacks.notify();
     }
 
     onInit(callback: () => void) {
-        return this._callbacks.on(callback);
+        const remover = this._callbacks.on(callback);
+        if (this._db)
+            callback();
+        return remover;
     }
 
-    // Debates
+    get selfPublicKey() { return this._selfPublicKey; }
 
-    private _debates: CollectionManager<IDebate> = new CollectionManager<IDebate>();
+    get debates() { return this._debates; }
+    get messagesFor() { return this._messagesFor; }
+    get messagesAgainst() { return this._messagesAgainst; }
+    get presentations() { return this._presentations; }
+    get votes() { return this._votes; }
 
-    async loadDebates() {
-        if (!this._db)
-            return;
+    // Votes helpers
 
-        this._debates.init(await this._db.collection('debate', {
-            publicAccess: AccessRights.ReadWrite,
-            conflictResolution: ConflictResolution.FirstWriteWins
-        }));
-    }
-
-    debates(): IDebate[] {
-        return this._debates.entries();
-    }
-
-    onDebatesUpdated(callback: () => void) {
-        return this._debates.onUpdated(callback);
-    }
-
-    addDebate(debate: IDebate) {
-        this._debates.addEntry(debate);
-    }
-
-    debate(debateId: string): IDebate | null {
-        return this._debates.entry(debateId);
-    }
-
-    // Messages
-
-    private _messages: Map<string, CollectionManager<IMessage>> = new Map(
-        ['for', 'against'].map(s => [s, new CollectionManager<IMessage>()]));
-
-    async loadMessages(debateId: string, side: string) {
-        if (!this._db)
-            return;
-
-        const collectionName = 'debate-' + debateId + '-messages-' + side;
-        this._messages.get(side)?.init(await this._db.collection(collectionName, {
-            publicAccess: AccessRights.ReadWrite,
-            conflictResolution: ConflictResolution.FirstWriteWins
-        }));
-    }
-
-    messages(side: string): IMessage[] {
-        return this._messages.get(side)?.entries() || [];
-    }
-
-    onMessages(side: string, callback: () => void) {
-        return this._messages.get(side)?.onUpdated(callback);
-    }
-
-    addMessage(side: string, message: IMessage) {
-        this._messages.get(side)?.addEntry(message);
-    }
-
-    // Votes
-
-    private _votes: Map<string, CollectionManager<IVote>> = new Map();
-
-    private _votesCollection(debateId: string, pageId: string): CollectionManager<IVote> {
-        const key = makeCollectionKey(debateId, pageId);
-        let votesCollection = this._votes.get(key);
-        if (!votesCollection) {
-            votesCollection = new CollectionManager<IVote>();
-            this._votes.set(key, votesCollection);
-        }
-        return votesCollection;
-    }
-
-    async loadVotes(debateId: string, pageId: string) {
-        if (!this._db)
-            return;
-
-        const collectionName = 'debate-' + debateId + '-votes';
-        const collection = this._votesCollection(debateId, pageId);
-        if (collection.ready())
-            return;
-        collection.init(await this._db.collection(collectionName, {
-            publicAccess: AccessRights.ReadAnyWriteOwn,
-            conflictResolution: ConflictResolution.LastWriteWins
-        }));
-    }
-
-    closeVotes(debateId: string, pageId: string) {
-        const key = makeCollectionKey(debateId, pageId);
-        this._votes.get(key)?.close();
-        this._votes.delete(key);
-    }
-
-    votes(debateId: string, pageId: string): IVote[] {
-        return this._votesCollection(debateId, pageId).entries() || [];
-    }
-
-    onVotes(debateId: string, pageId: string, callback: () => void) {
-        return this._votesCollection(debateId, pageId).onUpdated(callback);
-    }
-
-    addVote(debateId: string, pageId: string, message: IVote) {
-        if (this._selfPublicKey)
-            this._votesCollection(debateId, pageId).addEntry({ ...message, _id: this._selfPublicKey });
-    }
-
-    ownVoteDirection(debateId: string, pageId: string): VoteDirection {
+    ownVoteDirection(debateId: string): VoteDirection {
         if (!this._selfPublicKey)
             return VoteDirection.Undecided;
-        return this._votesCollection(debateId, pageId).entry(this._selfPublicKey)?.direction || VoteDirection.Undecided;
+        return this._votes.entry(debateId, this._selfPublicKey)?.direction || VoteDirection.Undecided;
     }
 
-    votesFor(debateId: string, pageId: string): number {
-        return this.votes(debateId, pageId).reduce((c, v) => c + v.direction == VoteDirection.For ? 1 : 0, 0);
+    votesFor(debateId: string): number {
+        return this._votes.entries(debateId).reduce((c, v) => c + v.direction == VoteDirection.For ? 1 : 0, 0);
     }
 
-    votesAgainst(debateId: string, pageId: string): number {
-        return this.votes(debateId, pageId).reduce((c, v) => c + v.direction == VoteDirection.Against ? 1 : 0, 0);
-    }
-
-    // Presentations
-
-    private _presentations: CollectionManager<IPresentation> = new CollectionManager<IPresentation>();
-
-    async loadPresentations(debateId: string) {
-        if (!this._db)
-            return;
-
-        const collectionName = 'debate-' + debateId + '-presentations';
-        this._presentations.init(await this._db.collection(collectionName, {
-            publicAccess: AccessRights.ReadAnyWriteOwn,
-            conflictResolution: ConflictResolution.LastWriteWins
-        }));
-    }
-
-    presentations(): IPresentation[] {
-        return this._presentations.entries() || [];
-    }
-
-    onPresentations(callback: () => void) {
-        return this._presentations.onUpdated(callback);
-    }
-
-    addPresentation(presentation: IPresentation) {
-        if (this._selfPublicKey)
-            this._presentations.addEntry({ ...presentation, _id: this._selfPublicKey });
+    votesAgainst(debateId: string): number {
+        return this._votes.entries(debateId).reduce((c, v) => c + v.direction == VoteDirection.Against ? 1 : 0, 0);
     }
 }

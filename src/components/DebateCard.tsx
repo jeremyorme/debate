@@ -5,35 +5,36 @@ import { heartSharp, peopleSharp, thumbsDownSharp, thumbsUpSharp, videocamSharp 
 import { Link } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { useEffect, useState } from 'react';
-import { AppData } from '../AppData';
+import { PageData } from '../AppData';
 import { findUrl } from '../Utils';
 
 interface ContainerProps {
-    appData: AppData,
+    pageData: PageData,
     id: string;
 }
 
 const PAGE_ID = 'debate-card';
 
-const DebateCard: React.FC<ContainerProps> = ({ appData, id }) => {
-    const [debate] = useState(appData.debate(id));
+const DebateCard: React.FC<ContainerProps> = ({ pageData, id }) => {
+    const [debate] = useState(pageData.debates.entry(id));
     const { ref, inView } = useInView();
-    const [votesFor, setVotesFor] = useState(appData.votesFor(id, PAGE_ID));
-    const [votesAgainst, setVotesAgainst] = useState(appData.votesAgainst(id, PAGE_ID));
+    const [votesFor, setVotesFor] = useState(pageData.votesFor(id));
+    const [votesAgainst, setVotesAgainst] = useState(pageData.votesAgainst(id));
 
     useEffect(() => {
         if (inView)
-            appData.loadVotes(id, PAGE_ID);
+            pageData.votes.load(id);
         else
-            appData.closeVotes(id, PAGE_ID);
+            pageData.votes.close(id);
     }, [inView]);
 
     useEffect(() => {
-        return appData.onVotes(id, PAGE_ID, () => {
-            setVotesFor(appData.votesFor(id, PAGE_ID));
-            setVotesAgainst(appData.votesAgainst(id, PAGE_ID));
-        });
-    });
+        if (inView)
+            return pageData.votes.onUpdated(id, () => {
+                setVotesFor(pageData.votesFor(id));
+                setVotesAgainst(pageData.votesAgainst(id));
+            });
+    }, [inView]);
 
     if (!debate)
         return null;

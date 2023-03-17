@@ -2,13 +2,13 @@ import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonG
 import { arrowForwardSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { AppData, dbEntryDefaults, IMessage, IVote, VoteDirection } from "../AppData";
+import { dbEntryDefaults, IMessage, IVote, PageData, VoteDirection } from "../AppData";
 import MessageCard from "../components/MessageCard";
 import { findUrl } from "../Utils";
 import './MessagesPage.css';
 
 interface ContainerProps {
-    appData: AppData;
+    pageData: PageData;
 }
 
 interface ContainerParams {
@@ -16,42 +16,52 @@ interface ContainerParams {
     side: string;
 }
 
-const PAGE_ID = 'messages-page';
-
-const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
+const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     const { id, side } = useParams<ContainerParams>();
-    const getDebateTitle = () => appData.debate(id)?.title || '<< Loading >>';
+    const getDebateTitle = () => pageData.debates.entry(id)?.title || '<< Loading >>';
 
     const [debateTitle, setDebateTitle] = useState(getDebateTitle());
-    const [messages, setMessages] = useState(appData.messages(side));
+    const [messages, setMessages] = useState(side == 'for' ? pageData.messagesFor.entries(id) : pageData.messagesAgainst.entries(id));
     const [description, setDescription] = useState('');
-    const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection(id, PAGE_ID));
+    const [ownVoteDirection, setOwnVoteDirection] = useState(pageData.ownVoteDirection(id));
 
     useEffect(() => {
-        appData.loadDebates();
-        return appData.onInit(() => {
-            appData.loadDebates();
+        return pageData.onInit(() => {
+            pageData.debates.load();
         });
     }, []);
 
     useEffect(() => {
-        return appData.onDebatesUpdated(() => {
+        return pageData.debates.onUpdated(() => {
             setDebateTitle(getDebateTitle());
-            appData.loadMessages(id, side);
-            appData.loadVotes(id, PAGE_ID);
+            if (side == 'for')
+                pageData.messagesFor.load(id);
+            else
+                pageData.messagesAgainst.load(id);
+            pageData.votes.load(id);
         });
     }, []);
 
     useEffect(() => {
-        return appData.onMessages(side, () => {
-            setMessages(appData.messages(side));
+        return side == 'for' ? pageData.messagesFor.onUpdated(id, () => {
+            setMessages(pageData.messagesFor.entries(id));
+        }) : pageData.messagesAgainst.onUpdated(id, () => {
+            setMessages(pageData.messagesAgainst.entries(id));
         });
     }, []);
 
     useEffect(() => {
-        return appData.onVotes(id, PAGE_ID, () => {
-            setOwnVoteDirection(appData.ownVoteDirection(id, PAGE_ID));
+        return pageData.votes.onUpdated(id, () => {
+            setOwnVoteDirection(pageData.ownVoteDirection(id));
         });
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            pageData.votes.close(id);
+            pageData.messagesAgainst.close(id);
+            pageData.messagesFor.close(id);
+        };
     }, []);
 
     const updateDescription = (value: string | null | undefined) => {
@@ -66,7 +76,10 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
             ...dbEntryDefaults,
             description,
         };
-        appData.addMessage(side, message);
+        if (side == 'for')
+            pageData.messagesFor.addEntry(id, message);
+        else
+            pageData.messagesAgainst.addEntry(id, message);
         setDescription('');
     };
 
@@ -76,7 +89,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ appData }) => {
             ...dbEntryDefaults,
             direction
         };
-        appData.addVote(id, PAGE_ID, vote);
+        pageData.votes.addEntry(id, vote);
         setOwnVoteDirection(direction);
     };
 

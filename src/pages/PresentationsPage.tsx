@@ -2,57 +2,59 @@ import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonG
 import { addSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { AppData, dbEntryDefaults, IPresentation, IVote, VoteDirection } from "../AppData";
+import { dbEntryDefaults, IPresentation, IVote, PageData, VoteDirection } from "../AppData";
 import MessageCard from "../components/MessageCard";
 import "./PresentationsPage.css";
 
 interface ContainerProps {
-    appData: AppData;
+    pageData: PageData;
 }
 
 interface ContainerParams {
     id: string;
 }
 
-const PAGE_ID = 'presentations-page';
-
-const PresentationsPage: React.FC<ContainerProps> = ({ appData }) => {
+const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     const { id } = useParams<ContainerParams>();
-    const getDebateTitle = () => appData.debate(id)?.title || '<< Loading >>';
+    const getDebateTitle = () => pageData.debates.entry(id)?.title || '<< Loading >>';
 
     const [debateTitle, setDebateTitle] = useState(getDebateTitle());
-    const [presentations, setPresentations] = useState(appData.presentations());
+    const [presentations, setPresentations] = useState(pageData.presentations.entries(id));
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
-    const [ownVoteDirection, setOwnVoteDirection] = useState(appData.ownVoteDirection(id, PAGE_ID));
+    const [ownVoteDirection, setOwnVoteDirection] = useState(pageData.ownVoteDirection(id));
 
     useEffect(() => {
-        appData.loadDebates();
-        return appData.onInit(() => {
-            appData.loadDebates();
+        return pageData.onInit(() => {
+            pageData.debates.load();
         });
     }, []);
 
     useEffect(() => {
-        appData.loadPresentations(id);
-        appData.loadVotes(id, PAGE_ID);
-        return appData.onDebatesUpdated(() => {
+        return pageData.debates.onUpdated(() => {
             setDebateTitle(getDebateTitle());
-            appData.loadPresentations(id);
-            appData.loadVotes(id, PAGE_ID);
+            pageData.presentations.load(id);
+            pageData.votes.load(id);
         });
     }, []);
 
     useEffect(() => {
-        return appData.onPresentations(() => {
-            setPresentations(appData.presentations());
+        return pageData.presentations.onUpdated(id, () => {
+            setPresentations(pageData.presentations.entries(id));
         });
     }, []);
 
     useEffect(() => {
-        return appData.onVotes(id, PAGE_ID, () => {
-            setOwnVoteDirection(appData.ownVoteDirection(id, PAGE_ID));
+        return pageData.votes.onUpdated(id, () => {
+            setOwnVoteDirection(pageData.ownVoteDirection(id));
         });
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            pageData.votes.close(id);
+            pageData.presentations.close(id);
+        };
     }, []);
 
     const updateTitle = (value: string | null | undefined) => {
@@ -75,7 +77,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ appData }) => {
             title,
             url
         };
-        appData.addPresentation(presentation);
+        pageData.presentations.addEntry(id, presentation);
         setTitle('');
         setUrl('');
     };
@@ -86,7 +88,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ appData }) => {
             ...dbEntryDefaults,
             direction
         };
-        appData.addVote(id, PAGE_ID, vote);
+        pageData.votes.addEntry(id, vote);
         setOwnVoteDirection(direction);
     };
 

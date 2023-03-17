@@ -1,16 +1,16 @@
 import { IonAvatar, IonButton, IonButtons, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonItemDivider, IonLabel, IonModal, IonTextarea, IonToolbar } from '@ionic/react';
 import { add, peopleSharp, remove } from 'ionicons/icons';
 import { useState } from 'react';
-import { AppData, dbEntryDefaults, IDebate, IGroup } from '../AppData';
+import { dbEntryDefaults, IDebate, IGroup, PageData } from '../AppData';
 import './DebateAddModal.css';
 
 interface ContainerProps {
-    appData: AppData;
+    pageData: PageData;
     isOpen: boolean;
     setIsOpen: (x: boolean) => void;
 }
 
-const DebateAddModal: React.FC<ContainerProps> = ({ appData, isOpen, setIsOpen }) => {
+const DebateAddModal: React.FC<ContainerProps> = ({ pageData, isOpen, setIsOpen }) => {
     const today = new Date();
     const addDay = (d: Date) => {
         const d_next = new Date();
@@ -88,7 +88,7 @@ const DebateAddModal: React.FC<ContainerProps> = ({ appData, isOpen, setIsOpen }
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString()
         };
-        appData.addDebate(debate);
+        pageData.debates.addEntry(debate);
         setIsOpen(false);
     }
     return (

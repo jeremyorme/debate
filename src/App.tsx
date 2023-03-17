@@ -69,7 +69,7 @@ const App: React.FC = () => {
             <IonTabs>
                 <IonRouterOutlet>
                     <Route exact path="/home">
-                        <HomePage appData={appData} />
+                        <HomePage pageData={appData.home} />
                     </Route>
                     <Route exact path="/tab2">
                         <Tab2 />
@@ -78,10 +78,10 @@ const App: React.FC = () => {
                         <Tab3 />
                     </Route>
                     <Route path="/debate/:id/messages/:side">
-                        <MessagesPage appData={appData} />
+                        <MessagesPage pageData={appData.messages} />
                     </Route>
                     <Route path="/debate/:id/presentations">
-                        <PresentationsPage appData={appData} />
+                        <PresentationsPage pageData={appData.presentations} />
                     </Route>
                     <Route exact path="/">
                         <Redirect to="/home" />
