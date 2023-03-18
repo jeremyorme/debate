@@ -1,7 +1,9 @@
 import { IonAvatar, IonButton, IonButtons, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonItemDivider, IonLabel, IonModal, IonTextarea, IonToolbar } from '@ionic/react';
 import { add, peopleSharp, remove } from 'ionicons/icons';
 import { useState } from 'react';
-import { dbEntryDefaults, IDebate, IGroup, PageData } from '../AppData';
+import { dbEntryDefaults } from '../app-data/IDbEntry';
+import { IGroup, IDebate } from '../app-data/IDebate';
+import { PageData } from '../app-data/PageData';
 import './DebateAddModal.css';
 
 interface ContainerProps {

@@ -15,7 +15,7 @@ import HomePage from './pages/HomePage';
 import Tab2 from './pages/Tab2';
 import Tab3 from './pages/Tab3';
 import { BononoDb, IDbClient } from 'bonono-react';
-import { AppData } from './AppData';
+import { AppData } from './app-data/AppData';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';

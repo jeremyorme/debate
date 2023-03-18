@@ -4,7 +4,7 @@ import DebateAddModal from '../components/DebateAddModal';
 import DebateCard from '../components/DebateCard';
 import { useEffect, useState } from 'react';
 import './HomePage.css';
-import { PageData } from '../AppData';
+import { PageData } from '../app-data/PageData';
 
 interface ContainerProps {
     pageData: PageData;

@@ -2,7 +2,10 @@ import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonG
 import { addSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { dbEntryDefaults, IPresentation, IVote, PageData, VoteDirection } from "../AppData";
+import { dbEntryDefaults } from "../app-data/IDbEntry";
+import { IPresentation } from "../app-data/IPresentation";
+import { VoteDirection, IVote } from "../app-data/IVote";
+import { PageData } from "../app-data/PageData";
 import MessageCard from "../components/MessageCard";
 import "./PresentationsPage.css";
 

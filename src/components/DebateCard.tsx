@@ -5,8 +5,8 @@ import { heartSharp, peopleSharp, thumbsDownSharp, thumbsUpSharp, videocamSharp 
 import { Link } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { useEffect, useState } from 'react';
-import { PageData } from '../AppData';
 import { findUrl } from '../Utils';
+import { PageData } from '../app-data/PageData';
 
 interface ContainerProps {
     pageData: PageData,
