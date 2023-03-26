@@ -40,3 +40,8 @@ ion-card-content {
     --background: rgba(0, 0, 0, 0);
     --color: var(--ion-color-medium);
 }
+
+.transition-button {
+    --background: rgba(0, 0, 0, 0);
+    --color: var(--ion-color-medium);
+}

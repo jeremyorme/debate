@@ -1,29 +1,49 @@
-import { IonAvatar, IonBadge, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonToolbar } from '@ionic/react';
+import { IonAvatar, IonBadge, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonToolbar } from '@ionic/react';
 import './DebateCard.css';
 import ReactPlayer from 'react-player';
-import { heartSharp, peopleSharp, thumbsDownSharp, thumbsUpSharp, videocamSharp } from 'ionicons/icons';
+import { heartSharp, peopleSharp, playCircleSharp, stopCircleSharp, thumbsDownSharp, thumbsUpSharp, videocamSharp } from 'ionicons/icons';
 import { Link } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { useEffect, useState } from 'react';
 import { findUrl } from '../Utils';
 import { PageData } from '../app-data/PageData';
+import { IArchivedDebate } from '../app-data/IArchivedDebate';
+import { IStartCode } from '../app-data/IStartCode';
+
+export enum DebateStage {
+    Upcoming = 'Upcoming',
+    Active = 'Active',
+    Ended = 'Ended'
+}
 
 interface ContainerProps {
     pageData: PageData,
     id: string;
+    debateStage: DebateStage;
+    startCode: IStartCode | null;
+    archivedDebate: IArchivedDebate | null;
+    onTransition: () => void;
 }
 
-const DebateCard: React.FC<ContainerProps> = ({ pageData, id }) => {
+const DebateCard: React.FC<ContainerProps> = ({ pageData, id, debateStage, startCode, archivedDebate, onTransition }) => {
     const [debate] = useState(pageData.debates.entry(id));
     const { ref, inView } = useInView();
     const [votesFor, setVotesFor] = useState(pageData.votesFor(id));
     const [votesAgainst, setVotesAgainst] = useState(pageData.votesAgainst(id));
 
     useEffect(() => {
-        if (inView)
-            pageData.votes.load(id);
-        else
+        if (inView) {
+            if (archivedDebate) {
+                setVotesFor(archivedDebate.votesFor);
+                setVotesAgainst(archivedDebate.votesAgainst);
+            }
+            else if (startCode) {
+                pageData.votes.load(id, startCode);
+            }
+        }
+        else {
             pageData.votes.close(id);
+        }
     }, [inView]);
 
     useEffect(() => {
@@ -45,6 +65,9 @@ const DebateCard: React.FC<ContainerProps> = ({ pageData, id }) => {
                 <IonItem className="head-item" lines="none">
                     <IonAvatar slot="start"><img src="https://ionicframework.com/docs/img/demos/avatar.svg" /></IonAvatar>
                     <IonLabel color="medium"><strong>@{debate._identity.publicKey.slice(-8)}</strong> - Just now</IonLabel>
+                    {debateStage != DebateStage.Ended && pageData.selfPublicKey == debate._identity.publicKey ? <IonButton slot="end" className="transition-button" onClick={() => onTransition()}>
+                        <IonIcon icon={debateStage == DebateStage.Upcoming ? playCircleSharp : stopCircleSharp}></IonIcon>
+                    </IonButton> : null}
                 </IonItem>
                 <IonCardTitle>{debate.title}</IonCardTitle>
             </IonCardHeader>
@@ -58,24 +81,24 @@ const DebateCard: React.FC<ContainerProps> = ({ pageData, id }) => {
             </div> : null}
             <IonToolbar>
                 <IonItem className="counts">
-                    <IonItem>
+                    {debateStage != DebateStage.Upcoming ? <IonItem>
                         <Link to={'/debate/' + id + '/messages/for'}>
                             <IonIcon size="small" icon={thumbsUpSharp} />
                         </Link>
                         <IonBadge className="count">{votesFor}</IonBadge>
-                    </IonItem>
-                    <IonItem>
+                    </IonItem> : null}
+                    {debateStage != DebateStage.Upcoming ? <IonItem>
                         <Link to={'/debate/' + id + '/messages/against'}>
                             <IonIcon size="small" icon={thumbsDownSharp} />
                         </Link>
                         <IonBadge className="count">{votesAgainst}</IonBadge>
-                    </IonItem>
-                    <IonItem>
+                    </IonItem> : null}
+                    {debateStage != DebateStage.Upcoming ? <IonItem>
                         <Link to={'/debate/' + id + '/presentations'}>
                             <IonIcon size="small" icon={videocamSharp} />
                         </Link>
                         <IonBadge className="count">11</IonBadge>
-                    </IonItem>
+                    </IonItem> : null}
                     <IonItem>
                         <IonIcon size="small" icon={heartSharp} />
                         <IonBadge className="count">11</IonBadge>

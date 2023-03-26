@@ -1,5 +1,6 @@
 import { IDb, ICollectionOptions, AccessRights } from "bonono-react";
 import { CollectionManager } from "./CollectionManager";
+import { IStartCode } from "./IStartCode";
 
 export class SubCollection<TEntry>
 {
@@ -27,7 +28,7 @@ export class SubCollection<TEntry>
         return manager;
     }
 
-    async load(id: string, lowerClock: number = 0, creatorPublicKey: string | null = null) {
+    async load(id: string, startCode: IStartCode | null = null, creatorPublicKey: string | null = null) {
         if (!this._db)
             return;
 
@@ -35,11 +36,13 @@ export class SubCollection<TEntry>
         if (manager.ready())
             return;
 
-        const collectionName = `${this._name}-${id}-${this._subName}`;
+        let collectionName = `${this._name}-${id}-${this._subName}`
+        if (startCode)
+            collectionName += `-${startCode.value}`;
         manager.init(await this._db.collection(collectionName,
             creatorPublicKey ?
-                { ...this._options, lowerClock, creatorPublicKey } :
-                { ...this._options, lowerClock }));
+                { ...this._options, creatorPublicKey } :
+                { ...this._options }));
     }
 
     close(id: string) {

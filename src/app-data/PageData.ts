@@ -1,9 +1,11 @@
 import { AccessRights, ConflictResolution, IDb } from "bonono-react";
 import { Callbacks } from "./Callbacks";
 import { Collection } from "./Collection";
+import { IArchivedDebate } from "./IArchivedDebate";
 import { IDebate } from "./IDebate";
 import { IMessage } from "./IMessage";
 import { IPresentation } from "./IPresentation";
+import { IStartCode } from "./IStartCode";
 import { IVote, VoteDirection } from "./IVote";
 import { SubCollection } from "./SubCollection";
 
@@ -31,6 +33,8 @@ export class PageData {
     private _messagesAgainst: SubCollection<IMessage> = new SubCollection('debate', 'messages-against', everyoneAppend);
     private _presentations: SubCollection<IPresentation> = new SubCollection('debate', 'presentations', everyoneUpdateOwn);
     private _votes: SubCollection<IVote> = new SubCollection('debate', 'votes', everyoneUpdateOwn);
+    private _startCodes: SubCollection<IStartCode> = new SubCollection('debate', 'startcodes', selfWriteOnce, true);
+    private _archivedDebates: SubCollection<IArchivedDebate> = new SubCollection('debate', 'archived', selfWriteOnce, true);
 
     init(db: IDb, selfPublicKey: string) {
         this._db = db;
@@ -40,6 +44,8 @@ export class PageData {
         this._messagesAgainst.init(db, selfPublicKey);
         this._presentations.init(db, selfPublicKey);
         this._votes.init(db, selfPublicKey);
+        this._startCodes.init(db, selfPublicKey);
+        this._archivedDebates.init(db, selfPublicKey);
         this._callbacks.notify();
     }
 
@@ -57,6 +63,8 @@ export class PageData {
     get messagesAgainst() { return this._messagesAgainst; }
     get presentations() { return this._presentations; }
     get votes() { return this._votes; }
+    get startCodes() { return this._startCodes; }
+    get archivedDebates() { return this._archivedDebates; }
 
     // Votes helpers
 

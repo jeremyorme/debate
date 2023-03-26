@@ -22,11 +22,16 @@ interface ContainerParams {
 const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     const { id, side } = useParams<ContainerParams>();
     const getDebateTitle = () => pageData.debates.entry(id)?.title || '<< Loading >>';
+    const getDebateOwner = () => pageData.debates.entry(id)?._identity.publicKey || null;
 
     const [debateTitle, setDebateTitle] = useState(getDebateTitle());
     const [messages, setMessages] = useState(side == 'for' ? pageData.messagesFor.entries(id) : pageData.messagesAgainst.entries(id));
     const [description, setDescription] = useState('');
     const [ownVoteDirection, setOwnVoteDirection] = useState(pageData.ownVoteDirection(id));
+    const [startCodeLoaded, setStartCodeLoaded] = useState(false);
+    const [startCode, setStartCode] = useState(pageData.startCodes.entry(id));
+    const [archivedDebateLoaded, setArchivedDebateLoaded] = useState(false);
+    const [archivedDebate, setArchivedDebate] = useState(pageData.archivedDebates.entry(id));
 
     useEffect(() => {
         return pageData.onInit(() => {
@@ -37,13 +42,46 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     useEffect(() => {
         return pageData.debates.onUpdated(() => {
             setDebateTitle(getDebateTitle());
-            if (side == 'for')
-                pageData.messagesFor.load(id);
-            else
-                pageData.messagesAgainst.load(id);
-            pageData.votes.load(id);
+
+            const owner = getDebateOwner();
+            pageData.archivedDebates.load(id, null, owner);
+            pageData.startCodes.load(id, null, owner);
         });
     }, []);
+
+    useEffect(() => {
+        return pageData.archivedDebates.onUpdated(id, () => {
+            setArchivedDebateLoaded(true);
+
+            const archivedDebate = pageData.archivedDebates.entry(id);
+            setArchivedDebate(archivedDebate);
+        });
+    }, []);
+
+    useEffect(() => {
+        return pageData.startCodes.onUpdated(id, () => {
+            setStartCodeLoaded(true);
+
+            const startCode = pageData.startCodes.entry(id);
+            setStartCode(startCode);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!startCodeLoaded || !archivedDebateLoaded)
+            return;
+        if (archivedDebate) {
+            setMessages(side == 'for' ? archivedDebate.messagesFor : archivedDebate.messagesAgainst);
+        }
+        else if (startCode) {
+            if (side == 'for')
+                pageData.messagesFor.load(id, startCode);
+            else
+                pageData.messagesAgainst.load(id, startCode);
+
+            pageData.votes.load(id, startCode);
+        }
+    }, [startCodeLoaded, archivedDebateLoaded]);
 
     useEffect(() => {
         return side == 'for' ? pageData.messagesFor.onUpdated(id, () => {
@@ -64,6 +102,8 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
             pageData.votes.close(id);
             pageData.messagesAgainst.close(id);
             pageData.messagesFor.close(id);
+            pageData.startCodes.close(id);
+            pageData.archivedDebates.close(id);
         };
     }, []);
 
@@ -104,15 +144,15 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                         <IonBackButton defaultHref="/home" />
                     </IonButtons>
                     <IonTitle>{side.charAt(0).toUpperCase() + side.slice(1)}: {debateTitle}</IonTitle>
-                    <IonButtons slot="end">
+                    {!archivedDebate ? <IonButtons slot="end">
                         {side == 'against' ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
                             <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
                         </IonButton> : <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
                             <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
                         </IonButton>}
-                    </IonButtons>
+                    </IonButtons> : null}
                 </IonToolbar>
-                <IonCard>
+                {!archivedDebate ? <IonCard>
                     <IonGrid>
                         <IonRow>
                             <IonCol>
@@ -125,7 +165,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                             </IonCol>
                         </IonRow>
                     </IonGrid>
-                </IonCard>
+                </IonCard> : null}
             </IonHeader>
             <IonContent>
                 {messages.map(m => <MessageCard key={m._id} username={m._identity.publicKey.slice(-8)} description={m.description} url={findUrl(m.description)} />)}

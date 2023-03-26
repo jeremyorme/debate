@@ -20,12 +20,17 @@ interface ContainerParams {
 const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     const { id } = useParams<ContainerParams>();
     const getDebateTitle = () => pageData.debates.entry(id)?.title || '<< Loading >>';
+    const getDebateOwner = () => pageData.debates.entry(id)?._identity.publicKey || null;
 
     const [debateTitle, setDebateTitle] = useState(getDebateTitle());
     const [presentations, setPresentations] = useState(pageData.presentations.entries(id));
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
     const [ownVoteDirection, setOwnVoteDirection] = useState(pageData.ownVoteDirection(id));
+    const [startCodeLoaded, setStartCodeLoaded] = useState(false);
+    const [startCode, setStartCode] = useState(pageData.startCodes.entry(id));
+    const [archivedDebateLoaded, setArchivedDebateLoaded] = useState(false);
+    const [archivedDebate, setArchivedDebate] = useState(pageData.archivedDebates.entry(id));
 
     useEffect(() => {
         return pageData.onInit(() => {
@@ -36,10 +41,51 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     useEffect(() => {
         return pageData.debates.onUpdated(() => {
             setDebateTitle(getDebateTitle());
-            pageData.presentations.load(id);
-            pageData.votes.load(id);
+
+            const owner = getDebateOwner();
+            pageData.archivedDebates.load(id, null, owner);
+            pageData.startCodes.load(id, null, owner);
         });
     }, []);
+
+    useEffect(() => {
+        return () => {
+            pageData.votes.close(id);
+            pageData.presentations.close(id);
+            pageData.startCodes.close(id);
+            pageData.archivedDebates.close(id);
+        };
+    }, []);
+
+    useEffect(() => {
+        return pageData.archivedDebates.onUpdated(id, () => {
+            setArchivedDebateLoaded(true);
+
+            const archivedDebate = pageData.archivedDebates.entry(id);
+            setArchivedDebate(archivedDebate);
+        });
+    }, []);
+
+    useEffect(() => {
+        return pageData.startCodes.onUpdated(id, () => {
+            setStartCodeLoaded(true);
+
+            const startCode = pageData.startCodes.entry(id);
+            setStartCode(startCode);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!startCodeLoaded || !archivedDebateLoaded)
+            return;
+        if (archivedDebate) {
+            setPresentations(archivedDebate.presentations);
+        }
+        else if (startCode) {
+            pageData.presentations.load(id, startCode);
+            pageData.votes.load(id, startCode);
+        }
+    }, [startCodeLoaded, archivedDebateLoaded]);
 
     useEffect(() => {
         return pageData.presentations.onUpdated(id, () => {
@@ -57,6 +103,8 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
         return () => {
             pageData.votes.close(id);
             pageData.presentations.close(id);
+            pageData.startCodes.close(id);
+            pageData.archivedDebates.close(id);
         };
     }, []);
 
@@ -103,16 +151,16 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                         <IonBackButton defaultHref="/home" />
                     </IonButtons>
                     <IonTitle>{debateTitle}</IonTitle>
-                    <IonButtons slot="end">
+                    {!archivedDebate ? <IonButtons slot="end">
                         <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
                             <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
                         </IonButton>
                         <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
                             <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
                         </IonButton>
-                    </IonButtons>
+                    </IonButtons> : null}
                 </IonToolbar>
-                <IonCard>
+                {!archivedDebate ? <IonCard>
                     <IonGrid>
                         <IonRow>
                             <IonCol>
@@ -130,7 +178,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                             </IonCol>
                         </IonRow>
                     </IonGrid>
-                </IonCard>
+                </IonCard> : null}
             </IonHeader>
             <IonContent>
                 {presentations.filter(p => p.url).map(p => <MessageCard key={p._id} username={p._identity.publicKey.slice(-8)} title={p.title} description="" url={p.url} />)}
