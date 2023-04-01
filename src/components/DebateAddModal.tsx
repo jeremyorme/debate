@@ -28,18 +28,18 @@ const DebateAddModal: React.FC<ContainerProps> = ({ pageData, isOpen, setIsOpen 
 
     const totalPercent = groups.map(g => g.percent).reduce((p, c) => p + c, 0);
 
-    const updateTitle = (value: string | null | undefined) => {
-        if (!value && value != '')
+    const updateTitle = (input: HTMLInputElement | null) => {
+        if (!input || !input.value && input.value != '')
             return;
 
-        setTitle(value);
+        setTitle(input.value);
     };
 
-    const updateDescription = (value: string | null | undefined) => {
-        if (!value && value != '')
+    const updateDescription = (input: HTMLInputElement | null) => {
+        if (!input || !input.value && input.value != '')
             return;
 
-        setDescription(value);
+        setDescription(input.value);
     };
 
     const updateStartTime = (value: string | string[] | null | undefined) => {
@@ -58,18 +58,18 @@ const DebateAddModal: React.FC<ContainerProps> = ({ pageData, isOpen, setIsOpen 
         setEndTime(new Date(s));
     };
 
-    const updateName = (i: number, value: string | null | undefined) => {
-        if (!value)
+    const updateName = (i: number, input: HTMLInputElement | null) => {
+        if (!input || !input.value)
             return;
 
-        setGroups([...groups.slice(0, i), { name: value, percent: groups[i].percent }, ...groups.slice(i + 1)])
+        setGroups([...groups.slice(0, i), { name: input.value, percent: groups[i].percent }, ...groups.slice(i + 1)])
     };
 
-    const updatePercent = (i: number, value: string | null | undefined) => {
-        if (!value)
+    const updatePercent = (i: number, input: HTMLInputElement | null) => {
+        if (!input || !input.value)
             return;
 
-        let newPercent = parseFloat(value);
+        let newPercent = parseFloat(input.value);
         if (Number.isNaN(newPercent))
             return;
 
@@ -110,10 +110,10 @@ const DebateAddModal: React.FC<ContainerProps> = ({ pageData, isOpen, setIsOpen 
             <IonContent>
                 <IonItem>
                     <IonAvatar slot="start"><img src="https://ionicframework.com/docs/img/demos/avatar.svg" /></IonAvatar>
-                    <IonInput placeholder="What say you?" value={title} onIonChange={e => updateTitle(e.detail.value)} />
+                    <IonInput placeholder="What say you?" value={title} onIonInput={e => updateTitle(e.detail.target as HTMLInputElement)} />
                 </IonItem>
                 <IonItem>
-                    <IonTextarea autoGrow={true} placeholder="Tell me more..." value={description} onIonChange={e => updateDescription(e.detail.value)} />
+                    <IonTextarea autoGrow={true} placeholder="Tell me more..." value={description} onIonInput={e => updateDescription(e.detail.target as HTMLInputElement)} />
                 </IonItem>
 
                 <IonItemDivider>
@@ -133,9 +133,9 @@ const DebateAddModal: React.FC<ContainerProps> = ({ pageData, isOpen, setIsOpen 
                 </IonItem> : null}
                 {groups.map((g, i) => <IonItem>
                     <IonIcon slot="start" icon={peopleSharp} />
-                    <IonInput color="medium" placeholder="Group name" value={g.name} onIonChange={e => updateName(i, e.detail.value)} />
+                    <IonInput color="medium" placeholder="Group name" value={g.name} onIonInput={e => updateName(i, e.detail.target as HTMLInputElement)} />
                     <div style={{ 'width': '50px' }}>
-                        <IonInput type="number" color="medium" value={g.percent} onIonChange={e => updatePercent(i, e.detail.value)} />
+                        <IonInput type="number" color="medium" value={g.percent} onIonInput={e => updatePercent(i, e.detail.target as HTMLInputElement)} />
                     </div>
                     <IonLabel color="medium">%</IonLabel>
                     <IonButton slot="end" onClick={() => setGroups([...groups.slice(0, i), ...groups.slice(i + 1)])}>

@@ -107,11 +107,11 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
         };
     }, []);
 
-    const updateDescription = (value: string | null | undefined) => {
-        if (!value && value != '')
+    const updateDescription = (input: HTMLInputElement | null) => {
+        if (!input || !input.value && input.value != '')
             return;
 
-        setDescription(value);
+        setDescription(input.value);
     };
 
     const addMessage = () => {
@@ -156,7 +156,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                     <IonGrid>
                         <IonRow>
                             <IonCol>
-                                <IonInput placeholder="What do you think?" value={description} onIonChange={e => updateDescription(e.detail.value)} />
+                                <IonInput placeholder="What do you think?" value={description} onIonInput={e => updateDescription(e.detail.target as HTMLInputElement)} />
                             </IonCol>
                             <IonCol size="auto">
                                 <IonButton size="small" fill="clear" disabled={description.length == 0} onClick={() => addMessage()}>

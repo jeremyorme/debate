@@ -108,18 +108,18 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
         };
     }, []);
 
-    const updateTitle = (value: string | null | undefined) => {
-        if (!value && value != '')
+    const updateTitle = (input: HTMLInputElement | null) => {
+        if (!input || !input.value && input.value != '')
             return;
 
-        setTitle(value);
+        setTitle(input.value);
     };
 
-    const updateUrl = (value: string | null | undefined) => {
-        if (!value && value != '')
+    const updateUrl = (input: HTMLInputElement | null) => {
+        if (!input || !input.value && input.value != '')
             return;
 
-        setUrl(value);
+        setUrl(input.value);
     };
 
     const addPresentation = () => {
@@ -164,12 +164,12 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                     <IonGrid>
                         <IonRow>
                             <IonCol>
-                                <IonInput placeholder="Title" value={title} onIonChange={e => updateTitle(e.detail.value)} />
+                                <IonInput placeholder="Title" value={title} onIonInput={e => updateTitle(e.detail.target as HTMLInputElement)} />
                             </IonCol>
                         </IonRow>
                         <IonRow>
                             <IonCol>
-                                <IonInput placeholder="URL" value={url} onIonChange={e => updateUrl(e.detail.value)} />
+                                <IonInput placeholder="URL" value={url} onIonInput={e => updateUrl(e.detail.target as HTMLInputElement)} />
                             </IonCol>
                             <IonCol size="auto">
                                 <IonButton size="small" fill="clear" disabled={url.length == 0} onClick={() => addPresentation()}>
