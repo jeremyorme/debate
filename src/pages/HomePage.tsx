@@ -31,10 +31,14 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
     const [debateStage, setDebateStage] = useState(DebateStage.Upcoming);
     const [allDebates, setAllDebates] = useState([] as ILimitedDebate[])
     const [filteredDebates, setFilteredDebates] = useState([] as ILimitedDebate[]);
+    const [myLikedDebateIds, setMyLikedDebateIds] = useState([] as string[]);
+    const [myLikedDebateIdxs, setMyLikedDebateIdxs] = useState(new Map<string, number>());
+    const [likedDebateCounts, setLikedDebateCounts] = useState(new Map<string, number>());
 
     useEffect(() => {
         return pageData.onInit(() => {
             pageData.debates.load();
+            pageData.debateLikes.load();
         });
     }, []);
 
@@ -58,6 +62,29 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
 
     useEffect(() => {
         return pageData.debates.onUpdated(loadDebates);
+    }, []);
+
+    useEffect(() => {
+        return pageData.debateLikes.onUpdated(() => {
+            const allLikes = pageData.debateLikes.entries();
+            const likeCounts = new Map<string, number>();
+            for (const likes of allLikes)
+                for (const id of likes.ids)
+                    likeCounts.set(id, (likeCounts.get(id) || 0) + 1);
+            setLikedDebateCounts(likeCounts);
+
+            if (!pageData.selfPublicKey)
+                return;
+
+            const myLikedDebates = pageData.debateLikes.entry(pageData.selfPublicKey);
+            if (!myLikedDebates)
+                return;
+            setMyLikedDebateIds(myLikedDebates.ids);
+
+            const myLikedDebateIdxs = new Map<string, number>();
+            myLikedDebates.ids.forEach((id, i) => myLikedDebateIdxs.set(id, i));
+            setMyLikedDebateIdxs(myLikedDebateIdxs);
+        });
     }, []);
 
     const updateDebateStage = (value: string | null | undefined) => {
@@ -125,6 +152,27 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
         });
     };
 
+    const toggleDebateLiked = (debateId: string) => {
+        if (!pageData.selfPublicKey)
+            return;
+
+        let newIds = [...myLikedDebateIds];
+        const idx = myLikedDebateIdxs.get(debateId);
+        if (idx || idx == 0)
+            newIds.splice(idx, 1);
+        else
+            newIds.push(debateId);
+        pageData.debateLikes.addEntry({ ...dbEntryDefaults, _id: pageData.selfPublicKey, ids: newIds });
+    }
+
+    const isDebateLiked = (debateId: string) => {
+        return !!myLikedDebateIdxs.has(debateId);
+    }
+
+    const debateLikeCount = (debateId: string) => {
+        return likedDebateCounts.get(debateId) || 0;
+    }
+
     return (
         <IonPage>
             <IonHeader>
@@ -139,7 +187,17 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
                 </IonToolbar>
             </IonHeader>
             <IonContent fullscreen>
-                {filteredDebates.map(d => <DebateCard key={d.debate._id} pageData={pageData} id={d.debate._id} debateStage={debateStage} startCode={d.startCode} archivedDebate={d.archivedDebate} onTransition={() => askTransitionDebate(d)} />)}
+                {filteredDebates.map(d => <DebateCard
+                    key={d.debate._id}
+                    pageData={pageData}
+                    id={d.debate._id}
+                    debateStage={debateStage}
+                    startCode={d.startCode}
+                    archivedDebate={d.archivedDebate}
+                    onTransition={() => askTransitionDebate(d)}
+                    isLiked={isDebateLiked(d.debate._id)}
+                    onToggleLiked={() => { toggleDebateLiked(d.debate._id) }}
+                    likeCount={debateLikeCount(d.debate._id)} />)}
             </IonContent>
             {debateStage == DebateStage.Upcoming ? <IonFab slot="fixed" vertical="bottom" horizontal="end">
                 <IonFabButton onClick={() => setIsOpen(true)}>

@@ -23,9 +23,13 @@ interface ContainerProps {
     startCode: IStartCode | null;
     archivedDebate: IArchivedDebate | null;
     onTransition: () => void;
+    isLiked: boolean;
+    onToggleLiked: () => void;
+    likeCount: number;
 }
 
-const DebateCard: React.FC<ContainerProps> = ({ pageData, id, debateStage, startCode, archivedDebate, onTransition }) => {
+const DebateCard: React.FC<ContainerProps> = ({
+    pageData, id, debateStage, startCode, archivedDebate, onTransition, isLiked, onToggleLiked, likeCount }) => {
     const [debate] = useState(pageData.debates.entry(id));
     const { ref, inView } = useInView();
     const [votesFor, setVotesFor] = useState(pageData.votesFor(id));
@@ -100,8 +104,8 @@ const DebateCard: React.FC<ContainerProps> = ({ pageData, id, debateStage, start
                         <IonBadge className="count">11</IonBadge>
                     </IonItem> : null}
                     <IonItem>
-                        <IonIcon size="small" icon={heartSharp} />
-                        <IonBadge className="count">11</IonBadge>
+                        <IonIcon size="small" icon={heartSharp} color={isLiked ? 'danger' : 'medium'} onClick={() => onToggleLiked()} />
+                        <IonBadge className="count">{likeCount}</IonBadge>
                     </IonItem>
                     <IonItem>
                         <IonIcon size="small" icon={peopleSharp} />

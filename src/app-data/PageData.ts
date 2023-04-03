@@ -3,6 +3,7 @@ import { Callbacks } from "./Callbacks";
 import { Collection } from "./Collection";
 import { IArchivedDebate } from "./IArchivedDebate";
 import { IDebate } from "./IDebate";
+import { ILikes } from "./ILikes";
 import { IMessage } from "./IMessage";
 import { IPresentation } from "./IPresentation";
 import { IStartCode } from "./IStartCode";
@@ -29,6 +30,7 @@ export class PageData {
     private _selfPublicKey: string | null = null;
     private _callbacks: Callbacks = new Callbacks();
     private _debates: Collection<IDebate> = new Collection('debate', everyoneAppend);
+    private _debateLikes: Collection<ILikes> = new Collection('debatelikes', everyoneUpdateOwn);
     private _messagesFor: SubCollection<IMessage> = new SubCollection('debate', 'messages-for', everyoneAppend);
     private _messagesAgainst: SubCollection<IMessage> = new SubCollection('debate', 'messages-against', everyoneAppend);
     private _presentations: SubCollection<IPresentation> = new SubCollection('debate', 'presentations', everyoneUpdateOwn);
@@ -40,6 +42,7 @@ export class PageData {
         this._db = db;
         this._selfPublicKey = selfPublicKey;
         this._debates.init(db);
+        this._debateLikes.init(db);
         this._messagesFor.init(db, selfPublicKey);
         this._messagesAgainst.init(db, selfPublicKey);
         this._presentations.init(db, selfPublicKey);
@@ -59,6 +62,7 @@ export class PageData {
     get selfPublicKey() { return this._selfPublicKey; }
 
     get debates() { return this._debates; }
+    get debateLikes() { return this._debateLikes; }
     get messagesFor() { return this._messagesFor; }
     get messagesAgainst() { return this._messagesAgainst; }
     get presentations() { return this._presentations; }
