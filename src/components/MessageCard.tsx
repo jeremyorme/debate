@@ -5,14 +5,16 @@ import { heartSharp, peopleSharp, starSharp, thumbsDownSharp, thumbsUpSharp } fr
 import { Link } from 'react-router-dom';
 
 interface ContainerProps {
-    id?: string;
     title?: string;
     description: string;
     username: string;
     url: string;
+    isLiked: boolean;
+    onToggleLiked: () => void;
+    likeCount: number;
 }
 
-const MessageCard: React.FC<ContainerProps> = ({ id, title, description, username, url }) => {
+const MessageCard: React.FC<ContainerProps> = ({ title, description, username, url, isLiked, onToggleLiked, likeCount }) => {
     return (
         <IonCard>
             <IonCardHeader>
@@ -32,25 +34,13 @@ const MessageCard: React.FC<ContainerProps> = ({ id, title, description, usernam
             </div> : null}
             <IonToolbar>
                 <IonItem className="counts">
-                    {id ? <IonItem>
-                        <Link to={'/debate/' + id + '/messages/for'}>
-                            <IonIcon size="small" icon={thumbsUpSharp} />
-                        </Link>
-                        <IonBadge className="count">11</IonBadge>
-                    </IonItem> : null}
-                    {id ? <IonItem>
-                        <Link to={'/debate/' + id + '/messages/against'}>
-                            <IonIcon size="small" icon={thumbsDownSharp} />
-                        </Link>
-                        <IonBadge className="count">11</IonBadge>
-                    </IonItem> : null}
                     <IonItem>
                         <IonIcon size="small" icon={starSharp} />
                         <IonBadge className="count">11</IonBadge>
                     </IonItem>
                     <IonItem>
-                        <IonIcon size="small" icon={heartSharp} />
-                        <IonBadge className="count">11</IonBadge>
+                        <IonIcon size="small" icon={heartSharp} color={isLiked ? 'danger' : 'medium'} onClick={() => onToggleLiked()} />
+                        <IonBadge className="count">{likeCount}</IonBadge>
                     </IonItem>
                     <IonItem>
                         <IonIcon size="small" icon={peopleSharp} />

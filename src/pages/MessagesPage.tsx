@@ -32,10 +32,15 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     const [startCode, setStartCode] = useState(pageData.startCodes.entry(id));
     const [archivedDebateLoaded, setArchivedDebateLoaded] = useState(false);
     const [archivedDebate, setArchivedDebate] = useState(pageData.archivedDebates.entry(id));
+    const [myLikedMessageIds, setMyLikedMessageIds] = useState([] as string[]);
+    const [myLikedMessageIdxs, setMyLikedMessageIdxs] = useState(new Map<string, number>());
+    const [likedMessageCounts, setLikedMessageCounts] = useState(new Map<string, number>());
 
     useEffect(() => {
         return pageData.onInit(() => {
             pageData.debates.load();
+            const messageLikes = side == 'for' ? pageData.messageForLikes : pageData.messageAgainstLikes;
+            messageLikes.load(id);
         });
     }, []);
 
@@ -74,20 +79,17 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
             setMessages(side == 'for' ? archivedDebate.messagesFor : archivedDebate.messagesAgainst);
         }
         else if (startCode) {
-            if (side == 'for')
-                pageData.messagesFor.load(id, startCode);
-            else
-                pageData.messagesAgainst.load(id, startCode);
+            const messages = side == 'for' ? pageData.messagesFor : pageData.messagesAgainst;
+            messages.load(id, startCode);
 
             pageData.votes.load(id, startCode);
         }
     }, [startCodeLoaded, archivedDebateLoaded]);
 
     useEffect(() => {
-        return side == 'for' ? pageData.messagesFor.onUpdated(id, () => {
-            setMessages(pageData.messagesFor.entries(id));
-        }) : pageData.messagesAgainst.onUpdated(id, () => {
-            setMessages(pageData.messagesAgainst.entries(id));
+        const messages = side == 'for' ? pageData.messagesFor : pageData.messagesAgainst;
+        return messages.onUpdated(id, () => {
+            setMessages(messages.entries(id));
         });
     }, []);
 
@@ -98,12 +100,38 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     }, []);
 
     useEffect(() => {
+        const messageLikes = side == 'for' ? pageData.messageForLikes : pageData.messageAgainstLikes;
+        return messageLikes.onUpdated(id, () => {
+            const allLikes = messageLikes.entries(id);
+            const likeCounts = new Map<string, number>();
+            for (const likes of allLikes)
+                for (const id of likes.ids)
+                    likeCounts.set(id, (likeCounts.get(id) || 0) + 1);
+            setLikedMessageCounts(likeCounts);
+
+            if (!pageData.selfPublicKey)
+                return;
+
+            const myLikedMessages = messageLikes.entry(id, pageData.selfPublicKey);
+            if (!myLikedMessages)
+                return;
+            setMyLikedMessageIds(myLikedMessages.ids);
+
+            const myLikedMessageIdxs = new Map<string, number>();
+            myLikedMessages.ids.forEach((id, i) => myLikedMessageIdxs.set(id, i));
+            setMyLikedMessageIdxs(myLikedMessageIdxs);
+        });
+    }, []);
+
+    useEffect(() => {
         return () => {
             pageData.votes.close(id);
             pageData.messagesAgainst.close(id);
             pageData.messagesFor.close(id);
             pageData.startCodes.close(id);
             pageData.archivedDebates.close(id);
+            const messageLikes = side == 'for' ? pageData.messageForLikes : pageData.messageAgainstLikes;
+            messageLikes.close(id);
         };
     }, []);
 
@@ -135,6 +163,28 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
         pageData.votes.addEntry(id, vote);
         setOwnVoteDirection(direction);
     };
+
+    const toggleMessageLiked = (messageId: string) => {
+        if (!pageData.selfPublicKey)
+            return;
+
+        let newIds = [...myLikedMessageIds];
+        const idx = myLikedMessageIdxs.get(messageId);
+        if (idx || idx == 0)
+            newIds.splice(idx, 1);
+        else
+            newIds.push(messageId);
+        const messageLikes = side == 'for' ? pageData.messageForLikes : pageData.messageAgainstLikes;
+        messageLikes.addEntry(id, { ...dbEntryDefaults, _id: pageData.selfPublicKey, ids: newIds });
+    }
+
+    const isMessageLiked = (messageId: string) => {
+        return !!myLikedMessageIdxs.has(messageId);
+    }
+
+    const messageLikeCount = (messageId: string) => {
+        return likedMessageCounts.get(messageId) || 0;
+    }
 
     return (
         <IonPage>
@@ -168,7 +218,14 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                 </IonCard> : null}
             </IonHeader>
             <IonContent>
-                {messages.map(m => <MessageCard key={m._id} username={m._identity.publicKey.slice(-8)} description={m.description} url={findUrl(m.description)} />)}
+                {messages.map(m => <MessageCard
+                    key={m._id}
+                    username={m._identity.publicKey.slice(-8)}
+                    description={m.description}
+                    url={findUrl(m.description)}
+                    isLiked={isMessageLiked(m._id)}
+                    onToggleLiked={() => toggleMessageLiked(m._id)}
+                    likeCount={messageLikeCount(m._id)} />)}
             </IonContent>
         </IonPage>
     );

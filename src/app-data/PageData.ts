@@ -29,8 +29,8 @@ export class PageData {
     private _db: IDb | null = null;
     private _selfPublicKey: string | null = null;
     private _callbacks: Callbacks = new Callbacks();
+
     private _debates: Collection<IDebate> = new Collection('debate', everyoneAppend);
-    private _debateLikes: Collection<ILikes> = new Collection('debatelikes', everyoneUpdateOwn);
     private _messagesFor: SubCollection<IMessage> = new SubCollection('debate', 'messages-for', everyoneAppend);
     private _messagesAgainst: SubCollection<IMessage> = new SubCollection('debate', 'messages-against', everyoneAppend);
     private _presentations: SubCollection<IPresentation> = new SubCollection('debate', 'presentations', everyoneUpdateOwn);
@@ -38,17 +38,28 @@ export class PageData {
     private _startCodes: SubCollection<IStartCode> = new SubCollection('debate', 'startcodes', selfWriteOnce, true);
     private _archivedDebates: SubCollection<IArchivedDebate> = new SubCollection('debate', 'archived', selfWriteOnce, true);
 
+    private _debateLikes: Collection<ILikes> = new Collection('debatelikes', everyoneUpdateOwn);
+    private _messageForLikes: SubCollection<ILikes> = new SubCollection('debatelikes', 'messages-for', everyoneUpdateOwn);
+    private _messageAgainstLikes: SubCollection<ILikes> = new SubCollection('debatelikes', 'messages-against', everyoneUpdateOwn);
+    private _presentationLikes: SubCollection<ILikes> = new SubCollection('debatelikes', 'presentations', everyoneUpdateOwn);
+
     init(db: IDb, selfPublicKey: string) {
         this._db = db;
         this._selfPublicKey = selfPublicKey;
+
         this._debates.init(db);
-        this._debateLikes.init(db);
         this._messagesFor.init(db, selfPublicKey);
         this._messagesAgainst.init(db, selfPublicKey);
         this._presentations.init(db, selfPublicKey);
         this._votes.init(db, selfPublicKey);
         this._startCodes.init(db, selfPublicKey);
         this._archivedDebates.init(db, selfPublicKey);
+
+        this._debateLikes.init(db);
+        this._messageForLikes.init(db, selfPublicKey);
+        this._messageAgainstLikes.init(db, selfPublicKey);
+        this._presentationLikes.init(db, selfPublicKey);
+
         this._callbacks.notify();
     }
 
@@ -62,13 +73,17 @@ export class PageData {
     get selfPublicKey() { return this._selfPublicKey; }
 
     get debates() { return this._debates; }
-    get debateLikes() { return this._debateLikes; }
     get messagesFor() { return this._messagesFor; }
     get messagesAgainst() { return this._messagesAgainst; }
     get presentations() { return this._presentations; }
     get votes() { return this._votes; }
     get startCodes() { return this._startCodes; }
     get archivedDebates() { return this._archivedDebates; }
+
+    get debateLikes() { return this._debateLikes; }
+    get messageForLikes() { return this._messageForLikes; }
+    get messageAgainstLikes() { return this._messageAgainstLikes; }
+    get presentationLikes() { return this._presentationLikes; }
 
     // Votes helpers
 

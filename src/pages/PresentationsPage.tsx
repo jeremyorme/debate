@@ -31,10 +31,14 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     const [startCode, setStartCode] = useState(pageData.startCodes.entry(id));
     const [archivedDebateLoaded, setArchivedDebateLoaded] = useState(false);
     const [archivedDebate, setArchivedDebate] = useState(pageData.archivedDebates.entry(id));
+    const [myLikedPresentationIds, setMyLikedPresentationIds] = useState([] as string[]);
+    const [myLikedPresentationIdxs, setMyLikedPresentationIdxs] = useState(new Map<string, number>());
+    const [likedPresentationCounts, setLikedPresentationCounts] = useState(new Map<string, number>());
 
     useEffect(() => {
         return pageData.onInit(() => {
             pageData.debates.load();
+            pageData.presentationLikes.load(id);
         });
     }, []);
 
@@ -46,15 +50,6 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
             pageData.archivedDebates.load(id, null, owner);
             pageData.startCodes.load(id, null, owner);
         });
-    }, []);
-
-    useEffect(() => {
-        return () => {
-            pageData.votes.close(id);
-            pageData.presentations.close(id);
-            pageData.startCodes.close(id);
-            pageData.archivedDebates.close(id);
-        };
     }, []);
 
     useEffect(() => {
@@ -100,11 +95,35 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     }, []);
 
     useEffect(() => {
+        return pageData.presentationLikes.onUpdated(id, () => {
+            const allLikes = pageData.presentationLikes.entries(id);
+            const likeCounts = new Map<string, number>();
+            for (const likes of allLikes)
+                for (const id of likes.ids)
+                    likeCounts.set(id, (likeCounts.get(id) || 0) + 1);
+            setLikedPresentationCounts(likeCounts);
+
+            if (!pageData.selfPublicKey)
+                return;
+
+            const myLikedPresentations = pageData.presentationLikes.entry(id, pageData.selfPublicKey);
+            if (!myLikedPresentations)
+                return;
+            setMyLikedPresentationIds(myLikedPresentations.ids);
+
+            const myLikedPresentationIdxs = new Map<string, number>();
+            myLikedPresentations.ids.forEach((id, i) => myLikedPresentationIdxs.set(id, i));
+            setMyLikedPresentationIdxs(myLikedPresentationIdxs);
+        });
+    }, []);
+
+    useEffect(() => {
         return () => {
             pageData.votes.close(id);
             pageData.presentations.close(id);
             pageData.startCodes.close(id);
             pageData.archivedDebates.close(id);
+            pageData.presentationLikes.close(id);
         };
     }, []);
 
@@ -142,6 +161,27 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
         pageData.votes.addEntry(id, vote);
         setOwnVoteDirection(direction);
     };
+
+    const togglePresentationLiked = (presentationId: string) => {
+        if (!pageData.selfPublicKey)
+            return;
+
+        let newIds = [...myLikedPresentationIds];
+        const idx = myLikedPresentationIdxs.get(presentationId);
+        if (idx || idx == 0)
+            newIds.splice(idx, 1);
+        else
+            newIds.push(presentationId);
+        pageData.presentationLikes.addEntry(id, { ...dbEntryDefaults, _id: pageData.selfPublicKey, ids: newIds });
+    }
+
+    const isPresentationLiked = (presentationId: string) => {
+        return !!myLikedPresentationIdxs.has(presentationId);
+    }
+
+    const presentationLikeCount = (presentationId: string) => {
+        return likedPresentationCounts.get(presentationId) || 0;
+    }
 
     return (
         <IonPage>
@@ -181,7 +221,15 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                 </IonCard> : null}
             </IonHeader>
             <IonContent>
-                {presentations.filter(p => p.url).map(p => <MessageCard key={p._id} username={p._identity.publicKey.slice(-8)} title={p.title} description="" url={p.url} />)}
+                {presentations.filter(p => p.url).map(p => <MessageCard
+                    key={p._id}
+                    username={p._identity.publicKey.slice(-8)}
+                    title={p.title}
+                    description=""
+                    url={p.url}
+                    isLiked={isPresentationLiked(p._id)}
+                    onToggleLiked={() => togglePresentationLiked(p._id)}
+                    likeCount={presentationLikeCount(p._id)} />)}
             </IonContent>
         </IonPage>
     );
