@@ -1,5 +1,5 @@
-import { IonAvatar, IonButton, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonList, IonPage, IonPopover, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonToolbar, useIonAlert } from '@ionic/react';
-import { add, chatbubbles, ellipsisHorizontalSharp } from 'ionicons/icons';
+import { IonAvatar, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonPage, IonSegment, IonSegmentButton, IonToolbar, useIonAlert } from '@ionic/react';
+import { add, chatbubbles } from 'ionicons/icons';
 import DebateAddModal from '../components/DebateAddModal';
 import DebateCard, { DebateStage } from '../components/DebateCard';
 import { useEffect, useState } from 'react';

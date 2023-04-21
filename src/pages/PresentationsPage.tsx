@@ -1,5 +1,5 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonList, IonPage, IonPopover, IonRow, IonSelect, IonSelectOption, IonTitle, IonToolbar } from "@ionic/react";
-import { addSharp, ellipsisHorizontalSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
+import { addSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { dbEntryDefaults } from "../app-data/IDbEntry";
