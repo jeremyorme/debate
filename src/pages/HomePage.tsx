@@ -1,5 +1,5 @@
-import { IonAvatar, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonPage, IonSegment, IonSegmentButton, IonToolbar, useIonAlert } from '@ionic/react';
-import { add, chatbubbles } from 'ionicons/icons';
+import { IonAvatar, IonButton, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonList, IonPage, IonPopover, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonToolbar, useIonAlert } from '@ionic/react';
+import { add, chatbubbles, ellipsisHorizontalSharp } from 'ionicons/icons';
 import DebateAddModal from '../components/DebateAddModal';
 import DebateCard, { DebateStage } from '../components/DebateCard';
 import { useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { IArchivedDebate } from '../app-data/IArchivedDebate';
 import { dbEntryDefaults } from '../app-data/IDbEntry';
 import { IDebate } from '../app-data/IDebate';
 import { IStartCode } from '../app-data/IStartCode';
+import OverflowMenu, { SortBy } from '../components/OverflowMenu';
 
 interface ContainerProps {
     pageData: PageData;
@@ -34,6 +35,7 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
     const [myLikedDebateIds, setMyLikedDebateIds] = useState([] as string[]);
     const [myLikedDebateIdxs, setMyLikedDebateIdxs] = useState(new Map<string, number>());
     const [likedDebateCounts, setLikedDebateCounts] = useState(new Map<string, number>());
+    const [sortBy, setSortBy] = useState(SortBy.Time);
 
     useEffect(() => {
         return pageData.onInit(() => {
@@ -43,10 +45,14 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
     }, []);
 
     useEffect(() => {
-        setFilteredDebates(debateStage == DebateStage.Upcoming ? allDebates.filter(d => !d.startCode) :
-            debateStage == DebateStage.Active ? allDebates.filter(d => d.startCode && !d.archivedDebate) :
-                debateStage == DebateStage.Ended ? allDebates.filter(d => d.archivedDebate) : []);
-    }, [allDebates, debateStage]);
+        const byMostPopularFirst = (a: ILimitedDebate, b: ILimitedDebate) => {
+            return debateLikeCount(b.debate._id) - debateLikeCount(a.debate._id);
+        };
+        const sortedDebates = sortBy == SortBy.Time ? allDebates : [...allDebates].sort(byMostPopularFirst);
+        setFilteredDebates(debateStage == DebateStage.Upcoming ? sortedDebates.filter(d => !d.startCode) :
+            debateStage == DebateStage.Active ? sortedDebates.filter(d => d.startCode && !d.archivedDebate) :
+                debateStage == DebateStage.Ended ? sortedDebates.filter(d => d.archivedDebate) : []);
+    }, [allDebates, debateStage, sortBy]);
 
     const loadDebates = async () => {
         setAllDebates(await Promise.all(pageData.debates.entries().map(async (debate: IDebate) => {
@@ -180,6 +186,9 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
                     <IonItem>
                         <IonAvatar slot="start"><img src="https://ionicframework.com/docs/img/demos/avatar.svg" /></IonAvatar>
                         <IonIcon className="app-icon" icon={chatbubbles}></IonIcon>
+                        <IonButtons slot="end">
+                            <OverflowMenu id="debates" sortBy={sortBy} onSortByChanged={setSortBy} />
+                        </IonButtons>
                     </IonItem>
                     <IonSegment value={debateStage} onIonChange={e => updateDebateStage(e.detail.value)}>
                         {Object.keys(DebateStage).map(s => <IonSegmentButton key={s} value={s}>{s}</IonSegmentButton>)}

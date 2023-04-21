@@ -1,5 +1,5 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
-import { addSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonList, IonPage, IonPopover, IonRow, IonSelect, IonSelectOption, IonTitle, IonToolbar } from "@ionic/react";
+import { addSharp, ellipsisHorizontalSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { dbEntryDefaults } from "../app-data/IDbEntry";
@@ -7,6 +7,7 @@ import { IPresentation } from "../app-data/IPresentation";
 import { VoteDirection, IVote } from "../app-data/IVote";
 import { PageData } from "../app-data/PageData";
 import MessageCard from "../components/MessageCard";
+import OverflowMenu, { SortBy } from "../components/OverflowMenu";
 import "./PresentationsPage.css";
 
 interface ContainerProps {
@@ -34,6 +35,8 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     const [myLikedPresentationIds, setMyLikedPresentationIds] = useState([] as string[]);
     const [myLikedPresentationIdxs, setMyLikedPresentationIdxs] = useState(new Map<string, number>());
     const [likedPresentationCounts, setLikedPresentationCounts] = useState(new Map<string, number>());
+    const [sortBy, setSortBy] = useState(SortBy.Time);
+    const [sortedPresentations, setSortedPresentations] = useState(presentations);
 
     useEffect(() => {
         return pageData.onInit(() => {
@@ -127,6 +130,13 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
         };
     }, []);
 
+    useEffect(() => {
+        const byMostPopularFirst = (a: IPresentation, b: IPresentation) => {
+            return presentationLikeCount(b._id) - presentationLikeCount(a._id);
+        };
+        setSortedPresentations(sortBy == SortBy.Time ? presentations : [...presentations].sort(byMostPopularFirst));
+    }, [sortBy, presentations]);
+
     const updateTitle = (input: HTMLInputElement | null) => {
         if (!input || !input.value && input.value != '')
             return;
@@ -191,14 +201,15 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                         <IonBackButton defaultHref="/home" />
                     </IonButtons>
                     <IonTitle>{debateTitle}</IonTitle>
-                    {!archivedDebate ? <IonButtons slot="end">
-                        <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
+                    <IonButtons slot="end">
+                        {!archivedDebate ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
                             <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
-                        </IonButton>
-                        <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
+                        </IonButton> : null}
+                        {!archivedDebate ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
                             <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
-                        </IonButton>
-                    </IonButtons> : null}
+                        </IonButton> : null}
+                        <OverflowMenu id="presentations" sortBy={sortBy} onSortByChanged={setSortBy} />
+                    </IonButtons>
                 </IonToolbar>
                 {!archivedDebate ? <IonCard>
                     <IonGrid>
@@ -221,7 +232,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                 </IonCard> : null}
             </IonHeader>
             <IonContent>
-                {presentations.filter(p => p.url).map(p => <MessageCard
+                {sortedPresentations.filter(p => p.url).map(p => <MessageCard
                     key={p._id}
                     username={p._identity.publicKey.slice(-8)}
                     title={p.title}

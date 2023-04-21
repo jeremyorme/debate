@@ -1,5 +1,5 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
-import { arrowForwardSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonList, IonPage, IonPopover, IonRow, IonSelect, IonSelectOption, IonTitle, IonToolbar } from "@ionic/react";
+import { arrowForwardSharp, ellipsisHorizontalSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { dbEntryDefaults } from "../app-data/IDbEntry";
@@ -7,6 +7,7 @@ import { IMessage } from "../app-data/IMessage";
 import { VoteDirection, IVote } from "../app-data/IVote";
 import { PageData } from "../app-data/PageData";
 import MessageCard from "../components/MessageCard";
+import OverflowMenu, { SortBy } from "../components/OverflowMenu";
 import { findUrl } from "../Utils";
 import './MessagesPage.css';
 
@@ -35,6 +36,8 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     const [myLikedMessageIds, setMyLikedMessageIds] = useState([] as string[]);
     const [myLikedMessageIdxs, setMyLikedMessageIdxs] = useState(new Map<string, number>());
     const [likedMessageCounts, setLikedMessageCounts] = useState(new Map<string, number>());
+    const [sortBy, setSortBy] = useState(SortBy.Time);
+    const [sortedMessages, setSortedMessages] = useState(messages);
 
     useEffect(() => {
         return pageData.onInit(() => {
@@ -135,6 +138,13 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
         };
     }, []);
 
+    useEffect(() => {
+        const byMostPopularFirst = (a: IMessage, b: IMessage) => {
+            return messageLikeCount(b._id) - messageLikeCount(a._id);
+        };
+        setSortedMessages(sortBy == SortBy.Time ? messages : [...messages].sort(byMostPopularFirst));
+    }, [sortBy, messages]);
+
     const updateDescription = (input: HTMLInputElement | null) => {
         if (!input || !input.value && input.value != '')
             return;
@@ -193,14 +203,16 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                     <IonButtons slot="start">
                         <IonBackButton defaultHref="/home" />
                     </IonButtons>
-                    <IonTitle>{side.charAt(0).toUpperCase() + side.slice(1)}: {debateTitle}</IonTitle>
-                    {!archivedDebate ? <IonButtons slot="end">
-                        {side == 'against' ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
+                    <IonTitle>{debateTitle}</IonTitle>
+                    <IonButtons slot="end">
+                        {!archivedDebate && side == 'against' ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
                             <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
-                        </IonButton> : <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
+                        </IonButton> : null}
+                        {!archivedDebate && side == 'for' ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
                             <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
-                        </IonButton>}
-                    </IonButtons> : null}
+                        </IonButton> : null}
+                        <OverflowMenu id="messages" sortBy={sortBy} onSortByChanged={setSortBy} />
+                    </IonButtons>
                 </IonToolbar>
                 {!archivedDebate ? <IonCard>
                     <IonGrid>
@@ -218,7 +230,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                 </IonCard> : null}
             </IonHeader>
             <IonContent>
-                {messages.map(m => <MessageCard
+                {sortedMessages.map(m => <MessageCard
                     key={m._id}
                     username={m._identity.publicKey.slice(-8)}
                     description={m.description}
