@@ -1,4 +1,4 @@
-import { IonAvatar, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonPage, IonSegment, IonSegmentButton, IonToolbar, useIonAlert } from '@ionic/react';
+import { IonAvatar, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent, IonItem, IonPage, IonSegment, IonSegmentButton, IonToolbar, useIonAlert } from '@ionic/react';
 import { add, chatbubbles } from 'ionicons/icons';
 import DebateAddModal from '../components/DebateAddModal';
 import DebateCard, { DebateStage } from '../components/DebateCard';
@@ -26,6 +26,8 @@ function uuidv4() {
         (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 }
 
+const PAGE_SIZE = 10;
+
 const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
     const [presentAlert] = useIonAlert();
     const [isOpen, setIsOpen] = useState(false);
@@ -36,6 +38,8 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
     const [myLikedDebateIdxs, setMyLikedDebateIdxs] = useState(new Map<string, number>());
     const [likedDebateCounts, setLikedDebateCounts] = useState(new Map<string, number>());
     const [sortBy, setSortBy] = useState(SortBy.Time);
+    const [renderedDebates, setRenderedDebates] = useState([] as ILimitedDebate[]);
+    const [maxRenderedDebates, setMaxRenderedDebates] = useState(PAGE_SIZE);
 
     useEffect(() => {
         return pageData.onInit(() => {
@@ -49,10 +53,12 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
             return debateLikeCount(b.debate._id) - debateLikeCount(a.debate._id);
         };
         const sortedDebates = sortBy == SortBy.Time ? allDebates : [...allDebates].sort(byMostPopularFirst);
-        setFilteredDebates(debateStage == DebateStage.Upcoming ? sortedDebates.filter(d => !d.startCode) :
+        const filteredDebates = debateStage == DebateStage.Upcoming ? sortedDebates.filter(d => !d.startCode) :
             debateStage == DebateStage.Active ? sortedDebates.filter(d => d.startCode && !d.archivedDebate) :
-                debateStage == DebateStage.Ended ? sortedDebates.filter(d => d.archivedDebate) : []);
-    }, [allDebates, debateStage, sortBy]);
+                debateStage == DebateStage.Ended ? sortedDebates.filter(d => d.archivedDebate) : [];
+        setFilteredDebates(filteredDebates);
+        setRenderedDebates(filteredDebates.slice(0, maxRenderedDebates));
+    }, [allDebates, debateStage, sortBy, maxRenderedDebates]);
 
     const loadDebates = async () => {
         setAllDebates(await Promise.all(pageData.debates.entries().map(async (debate: IDebate) => {
@@ -99,6 +105,7 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
 
         const debateStage: DebateStage = (DebateStage as any)[value];
         setDebateStage(debateStage);
+        setMaxRenderedDebates(PAGE_SIZE);
     };
 
     const transitionDebate = async (d: ILimitedDebate) => {
@@ -179,6 +186,12 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
         return likedDebateCounts.get(debateId) || 0;
     }
 
+    const onInfiniteScroll = (ev: CustomEvent<void>) => {
+        const target = ev.target as HTMLIonInfiniteScrollElement;
+        setTimeout(() => target.complete(), 500);
+        setMaxRenderedDebates(maxRenderedDebates + PAGE_SIZE);
+    }
+
     return (
         <IonPage>
             <IonHeader>
@@ -196,7 +209,7 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
                 </IonToolbar>
             </IonHeader>
             <IonContent fullscreen>
-                {filteredDebates.map(d => <DebateCard
+                {renderedDebates.map(d => <DebateCard
                     key={d.debate._id}
                     pageData={pageData}
                     id={d.debate._id}
@@ -207,6 +220,9 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
                     isLiked={isDebateLiked(d.debate._id)}
                     onToggleLiked={() => { toggleDebateLiked(d.debate._id) }}
                     likeCount={debateLikeCount(d.debate._id)} />)}
+                <IonInfiniteScroll disabled={renderedDebates.length == filteredDebates.length} onIonInfinite={onInfiniteScroll}>
+                    <IonInfiniteScrollContent></IonInfiniteScrollContent>
+                </IonInfiniteScroll>
             </IonContent>
             {debateStage == DebateStage.Upcoming ? <IonFab slot="fixed" vertical="bottom" horizontal="end">
                 <IonFabButton onClick={() => setIsOpen(true)}>

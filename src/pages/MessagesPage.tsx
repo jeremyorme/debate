@@ -1,4 +1,4 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
 import { arrowForwardSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
@@ -20,6 +20,8 @@ interface ContainerParams {
     side: string;
 }
 
+const PAGE_SIZE = 10;
+
 const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     const { id, side } = useParams<ContainerParams>();
     const getDebateTitle = () => pageData.debates.entry(id)?.title || '<< Loading >>';
@@ -37,7 +39,8 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     const [myLikedMessageIdxs, setMyLikedMessageIdxs] = useState(new Map<string, number>());
     const [likedMessageCounts, setLikedMessageCounts] = useState(new Map<string, number>());
     const [sortBy, setSortBy] = useState(SortBy.Time);
-    const [sortedMessages, setSortedMessages] = useState(messages);
+    const [renderedMessages, setRenderedMessages] = useState(messages.slice(0, PAGE_SIZE));
+    const [maxRenderedMessages, setMaxRenderedMessages] = useState(PAGE_SIZE);
 
     useEffect(() => {
         return pageData.onInit(() => {
@@ -142,8 +145,10 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
         const byMostPopularFirst = (a: IMessage, b: IMessage) => {
             return messageLikeCount(b._id) - messageLikeCount(a._id);
         };
-        setSortedMessages(sortBy == SortBy.Time ? messages : [...messages].sort(byMostPopularFirst));
-    }, [sortBy, messages]);
+        setRenderedMessages(sortBy == SortBy.Time ?
+            messages.slice(0, maxRenderedMessages) :
+            [...messages].sort(byMostPopularFirst).slice(0, maxRenderedMessages));
+    }, [sortBy, messages, maxRenderedMessages]);
 
     const updateDescription = (input: HTMLInputElement | null) => {
         if (!input || !input.value && input.value != '')
@@ -196,6 +201,12 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
         return likedMessageCounts.get(messageId) || 0;
     }
 
+    const onInfiniteScroll = (ev: CustomEvent<void>) => {
+        const target = ev.target as HTMLIonInfiniteScrollElement;
+        setTimeout(() => target.complete(), 500);
+        setMaxRenderedMessages(maxRenderedMessages + PAGE_SIZE);
+    }
+
     return (
         <IonPage>
             <IonHeader>
@@ -230,7 +241,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                 </IonCard> : null}
             </IonHeader>
             <IonContent>
-                {sortedMessages.map(m => <MessageCard
+                {renderedMessages.map(m => <MessageCard
                     key={m._id}
                     username={m._identity.publicKey.slice(-8)}
                     description={m.description}
@@ -238,6 +249,9 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                     isLiked={isMessageLiked(m._id)}
                     onToggleLiked={() => toggleMessageLiked(m._id)}
                     likeCount={messageLikeCount(m._id)} />)}
+                <IonInfiniteScroll disabled={renderedMessages.length == messages.length} onIonInfinite={onInfiniteScroll}>
+                    <IonInfiniteScrollContent></IonInfiniteScrollContent>
+                </IonInfiniteScroll>
             </IonContent>
         </IonPage>
     );

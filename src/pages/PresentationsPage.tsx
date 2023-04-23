@@ -1,4 +1,4 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent, IonInput, IonPage, IonRow, IonTitle, IonToolbar } from "@ionic/react";
 import { addSharp, thumbsDownOutline, thumbsDownSharp, thumbsUpOutline, thumbsUpSharp } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -18,6 +18,8 @@ interface ContainerParams {
     id: string;
 }
 
+const PAGE_SIZE = 10;
+
 const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     const { id } = useParams<ContainerParams>();
     const getDebateTitle = () => pageData.debates.entry(id)?.title || '<< Loading >>';
@@ -36,7 +38,8 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     const [myLikedPresentationIdxs, setMyLikedPresentationIdxs] = useState(new Map<string, number>());
     const [likedPresentationCounts, setLikedPresentationCounts] = useState(new Map<string, number>());
     const [sortBy, setSortBy] = useState(SortBy.Time);
-    const [sortedPresentations, setSortedPresentations] = useState(presentations);
+    const [renderedPresentations, setRenderedPresentations] = useState(presentations.slice(0, PAGE_SIZE));
+    const [maxRenderedPresentations, setMaxRenderedPresentations] = useState(PAGE_SIZE);
 
     useEffect(() => {
         return pageData.onInit(() => {
@@ -134,8 +137,10 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
         const byMostPopularFirst = (a: IPresentation, b: IPresentation) => {
             return presentationLikeCount(b._id) - presentationLikeCount(a._id);
         };
-        setSortedPresentations(sortBy == SortBy.Time ? presentations : [...presentations].sort(byMostPopularFirst));
-    }, [sortBy, presentations]);
+        setRenderedPresentations(sortBy == SortBy.Time ?
+            presentations.slice(0, maxRenderedPresentations) :
+            [...presentations].sort(byMostPopularFirst).slice(0, maxRenderedPresentations));
+    }, [sortBy, presentations, maxRenderedPresentations]);
 
     const updateTitle = (input: HTMLInputElement | null) => {
         if (!input || !input.value && input.value != '')
@@ -193,6 +198,12 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
         return likedPresentationCounts.get(presentationId) || 0;
     }
 
+    const onInfiniteScroll = (ev: CustomEvent<void>) => {
+        const target = ev.target as HTMLIonInfiniteScrollElement;
+        setTimeout(() => target.complete(), 500);
+        setMaxRenderedPresentations(maxRenderedPresentations + PAGE_SIZE);
+    }
+
     return (
         <IonPage>
             <IonHeader>
@@ -232,7 +243,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                 </IonCard> : null}
             </IonHeader>
             <IonContent>
-                {sortedPresentations.filter(p => p.url).map(p => <MessageCard
+                {renderedPresentations.filter(p => p.url).map(p => <MessageCard
                     key={p._id}
                     username={p._identity.publicKey.slice(-8)}
                     title={p.title}
@@ -241,6 +252,9 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                     isLiked={isPresentationLiked(p._id)}
                     onToggleLiked={() => togglePresentationLiked(p._id)}
                     likeCount={presentationLikeCount(p._id)} />)}
+                <IonInfiniteScroll disabled={renderedPresentations.length == presentations.length} onIonInfinite={onInfiniteScroll}>
+                    <IonInfiniteScrollContent></IonInfiniteScrollContent>
+                </IonInfiniteScroll>
             </IonContent>
         </IonPage>
     );
