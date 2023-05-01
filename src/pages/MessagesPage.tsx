@@ -6,6 +6,7 @@ import { dbEntryDefaults } from "../app-data/IDbEntry";
 import { IMessage } from "../app-data/IMessage";
 import { VoteDirection, IVote } from "../app-data/IVote";
 import { PageData } from "../app-data/PageData";
+import ItemsPopover from "../components/ItemsPopover";
 import MessageCard from "../components/MessageCard";
 import OverflowMenu, { SortBy } from "../components/OverflowMenu";
 import { findUrl } from "../Utils";
@@ -31,6 +32,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     const [messages, setMessages] = useState(side == 'for' ? pageData.messagesFor.entries(id) : pageData.messagesAgainst.entries(id));
     const [description, setDescription] = useState('');
     const [ownVoteDirection, setOwnVoteDirection] = useState(pageData.ownVoteDirection(id));
+    const [ownVoteGroupIdx, setOwnVoteGroupIdx] = useState(pageData.ownVoteGroupIdx(id));
     const [startCodeLoaded, setStartCodeLoaded] = useState(false);
     const [startCode, setStartCode] = useState(pageData.startCodes.entry(id));
     const [archivedDebateLoaded, setArchivedDebateLoaded] = useState(false);
@@ -102,6 +104,7 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
     useEffect(() => {
         return pageData.votes.onUpdated(id, () => {
             setOwnVoteDirection(pageData.ownVoteDirection(id));
+            setOwnVoteGroupIdx(pageData.ownVoteGroupIdx(id));
         });
     }, []);
 
@@ -169,14 +172,16 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
         setDescription('');
     };
 
-    const updateOwnVoteDirection = (newDirection: VoteDirection) => {
-        const direction = newDirection != ownVoteDirection ? newDirection : VoteDirection.Undecided;
+    const updateOwnVote = (newDirection: VoteDirection, groupIdx: number) => {
+        const direction = groupIdx != -1 ? newDirection : VoteDirection.Undecided;
         const vote: IVote = {
             ...dbEntryDefaults,
-            direction
+            direction,
+            groupIdx
         };
         pageData.votes.addEntry(id, vote);
         setOwnVoteDirection(direction);
+        setOwnVoteGroupIdx(groupIdx);
     };
 
     const toggleMessageLiked = (messageId: string) => {
@@ -207,6 +212,8 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
         setMaxRenderedMessages(maxRenderedMessages + PAGE_SIZE);
     }
 
+    const groupItems: string[] = pageData.debateGroups(id).map(g => `${g.name} (${g.percent.toFixed(1)}%)`)
+
     return (
         <IonPage>
             <IonHeader>
@@ -216,12 +223,28 @@ const MessagesPage: React.FC<ContainerProps> = ({ pageData }) => {
                     </IonButtons>
                     <IonTitle>{debateTitle}</IonTitle>
                     <IonButtons slot="end">
-                        {!archivedDebate && side == 'against' ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
-                            <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
-                        </IonButton> : null}
-                        {!archivedDebate && side == 'for' ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
-                            <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
-                        </IonButton> : null}
+                        {!archivedDebate && side == 'against' ? <div>
+                            <IonButton slot="icon-only" id="messages-vote-against">
+                                <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
+                            </IonButton>
+                            <ItemsPopover
+                                trigger="messages-vote-against"
+                                title="Select voting group:"
+                                items={groupItems}
+                                idx={ownVoteDirection == VoteDirection.Against ? ownVoteGroupIdx : -1}
+                                onChange={i => updateOwnVote(VoteDirection.Against, i)} />
+                        </div> : null}
+                        {!archivedDebate && side == 'for' ? <div>
+                            <IonButton slot="icon-only" id="messages-vote-for">
+                                <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
+                            </IonButton>
+                            <ItemsPopover
+                                trigger="messages-vote-for"
+                                title="Select voting group:"
+                                items={groupItems}
+                                idx={ownVoteDirection == VoteDirection.For ? ownVoteGroupIdx : -1}
+                                onChange={i => updateOwnVote(VoteDirection.For, i)} />
+                        </div> : null}
                         <OverflowMenu id="messages" sortBy={sortBy} onSortByChanged={setSortBy} />
                     </IonButtons>
                 </IonToolbar>

@@ -9,6 +9,7 @@ import { findUrl } from '../Utils';
 import { PageData } from '../app-data/PageData';
 import { IArchivedDebate } from '../app-data/IArchivedDebate';
 import { IStartCode } from '../app-data/IStartCode';
+import { countFormat } from '../util/CountFormat';
 
 export enum DebateStage {
     Upcoming = 'Upcoming',
@@ -32,14 +33,15 @@ const DebateCard: React.FC<ContainerProps> = ({
     pageData, id, debateStage, startCode, archivedDebate, onTransition, isLiked, onToggleLiked, likeCount }) => {
     const [debate] = useState(pageData.debates.entry(id));
     const { ref, inView } = useInView();
-    const [votesFor, setVotesFor] = useState(pageData.votesFor(id));
-    const [votesAgainst, setVotesAgainst] = useState(pageData.votesAgainst(id));
+    const [voteTotals, setVoteTotals] = useState(pageData.voteTotals(id));
 
     useEffect(() => {
         if (inView) {
             if (archivedDebate) {
-                setVotesFor(archivedDebate.votesFor);
-                setVotesAgainst(archivedDebate.votesAgainst);
+                setVoteTotals({
+                    votesFor: archivedDebate.votesFor,
+                    votesAgainst: archivedDebate.votesAgainst
+                });
             }
             else if (startCode) {
                 pageData.votes.load(id, startCode);
@@ -53,8 +55,7 @@ const DebateCard: React.FC<ContainerProps> = ({
     useEffect(() => {
         if (inView)
             return pageData.votes.onUpdated(id, () => {
-                setVotesFor(pageData.votesFor(id));
-                setVotesAgainst(pageData.votesAgainst(id));
+                setVoteTotals(pageData.voteTotals(id));
             });
     }, [inView]);
 
@@ -89,13 +90,13 @@ const DebateCard: React.FC<ContainerProps> = ({
                         <Link to={'/debate/' + id + '/messages/for'}>
                             <IonIcon size="small" icon={thumbsUpSharp} />
                         </Link>
-                        <IonBadge className="count">{votesFor}</IonBadge>
+                        <IonBadge className="count">{countFormat(voteTotals.votesFor)}</IonBadge>
                     </IonItem> : null}
                     {debateStage != DebateStage.Upcoming ? <IonItem>
                         <Link to={'/debate/' + id + '/messages/against'}>
                             <IonIcon size="small" icon={thumbsDownSharp} />
                         </Link>
-                        <IonBadge className="count">{votesAgainst}</IonBadge>
+                        <IonBadge className="count">{countFormat(voteTotals.votesAgainst)}</IonBadge>
                     </IonItem> : null}
                     {debateStage != DebateStage.Upcoming ? <IonItem>
                         <Link to={'/debate/' + id + '/presentations'}>

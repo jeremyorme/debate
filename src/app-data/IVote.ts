@@ -8,4 +8,5 @@ export enum VoteDirection {
 
 export interface IVote extends IDbEntry {
     direction: VoteDirection;
+    groupIdx: number;
 }

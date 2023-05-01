@@ -127,13 +127,14 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
                 pageData.votes.load(id, d.startCode),
                 pageData.archivedDebates.load(id, null, d.debate._identity.publicKey)]);
 
+            const voteTotals = pageData.voteTotals(id);
             await pageData.archivedDebates.addEntry(id, {
                 ...dbEntryDefaults,
                 messagesFor: pageData.messagesFor.entries(id),
                 messagesAgainst: pageData.messagesAgainst.entries(id),
                 presentations: pageData.presentations.entries(id),
-                votesFor: pageData.votesFor(id),
-                votesAgainst: pageData.votesAgainst(id)
+                votesFor: voteTotals.votesFor,
+                votesAgainst: voteTotals.votesAgainst
             });
 
             pageData.archivedDebates.close(id);

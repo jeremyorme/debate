@@ -9,6 +9,7 @@ import { PageData } from "../app-data/PageData";
 import MessageCard from "../components/MessageCard";
 import OverflowMenu, { SortBy } from "../components/OverflowMenu";
 import "./PresentationsPage.css";
+import ItemsPopover from "../components/ItemsPopover";
 
 interface ContainerProps {
     pageData: PageData;
@@ -30,6 +31,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
     const [ownVoteDirection, setOwnVoteDirection] = useState(pageData.ownVoteDirection(id));
+    const [ownVoteGroupIdx, setOwnVoteGroupIdx] = useState(pageData.ownVoteGroupIdx(id));
     const [startCodeLoaded, setStartCodeLoaded] = useState(false);
     const [startCode, setStartCode] = useState(pageData.startCodes.entry(id));
     const [archivedDebateLoaded, setArchivedDebateLoaded] = useState(false);
@@ -97,6 +99,7 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
     useEffect(() => {
         return pageData.votes.onUpdated(id, () => {
             setOwnVoteDirection(pageData.ownVoteDirection(id));
+            setOwnVoteGroupIdx(pageData.ownVoteGroupIdx(id));
         });
     }, []);
 
@@ -167,14 +170,16 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
         setUrl('');
     };
 
-    const updateOwnVoteDirection = (newDirection: VoteDirection) => {
-        const direction = newDirection != ownVoteDirection ? newDirection : VoteDirection.Undecided;
+    const updateOwnVote = (newDirection: VoteDirection, groupIdx: number) => {
+        const direction = groupIdx != -1 ? newDirection : VoteDirection.Undecided;
         const vote: IVote = {
             ...dbEntryDefaults,
-            direction
+            direction,
+            groupIdx
         };
         pageData.votes.addEntry(id, vote);
         setOwnVoteDirection(direction);
+        setOwnVoteGroupIdx(groupIdx);
     };
 
     const togglePresentationLiked = (presentationId: string) => {
@@ -204,6 +209,8 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
         setMaxRenderedPresentations(maxRenderedPresentations + PAGE_SIZE);
     }
 
+    const groupItems: string[] = pageData.debateGroups(id).map(g => `${g.name} (${g.percent.toFixed(1)}%)`)
+
     return (
         <IonPage>
             <IonHeader>
@@ -213,12 +220,26 @@ const PresentationsPage: React.FC<ContainerProps> = ({ pageData }) => {
                     </IonButtons>
                     <IonTitle>{debateTitle}</IonTitle>
                     <IonButtons slot="end">
-                        {!archivedDebate ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.For)}>
-                            <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
-                        </IonButton> : null}
-                        {!archivedDebate ? <IonButton slot="icon-only" onClick={() => updateOwnVoteDirection(VoteDirection.Against)}>
-                            <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
-                        </IonButton> : null}
+                        {!archivedDebate ? <div>
+                            <IonButton slot="icon-only" id="presentations-vote-against">
+                                <IonIcon icon={ownVoteDirection == VoteDirection.Against ? thumbsDownSharp : thumbsDownOutline} />
+                            </IonButton>
+                            <ItemsPopover
+                                trigger="presentations-vote-against"
+                                title="Select voting group:"
+                                items={groupItems}
+                                idx={ownVoteDirection == VoteDirection.Against ? ownVoteGroupIdx : -1}
+                                onChange={i => updateOwnVote(VoteDirection.Against, i)} />
+                            <IonButton slot="icon-only" id="presentations-vote-for">
+                                <IonIcon icon={ownVoteDirection == VoteDirection.For ? thumbsUpSharp : thumbsUpOutline} />
+                            </IonButton>
+                            <ItemsPopover
+                                trigger="presentations-vote-for"
+                                title="Select voting group:"
+                                items={groupItems}
+                                idx={ownVoteDirection == VoteDirection.For ? ownVoteGroupIdx : -1}
+                                onChange={i => updateOwnVote(VoteDirection.For, i)} />
+                        </div> : null}
                         <OverflowMenu id="presentations" sortBy={sortBy} onSortByChanged={setSortBy} />
                     </IonButtons>
                 </IonToolbar>
