@@ -45,3 +45,10 @@ ion-card-content {
     --background: rgba(0, 0, 0, 0);
     --color: var(--ion-color-medium);
 }
+
+.avatar {
+    border-radius: 50%;
+    overflow: hidden;
+    display: block;
+    height: 40px;
+}

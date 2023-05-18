@@ -39,6 +39,7 @@ import './App.css';
 import { useState } from 'react';
 import MessagesPage from './pages/MessagesPage';
 import PresentationsPage from './pages/PresentationsPage';
+import UserPage from './pages/UserPage';
 
 setupIonicReact();
 
@@ -82,6 +83,9 @@ const App: React.FC = () => {
                     </Route>
                     <Route path="/debate/:id/presentations">
                         <PresentationsPage pageData={appData.presentations} />
+                    </Route>
+                    <Route path="/user/:id">
+                        <UserPage pageData={appData.user} />
                     </Route>
                     <Route exact path="/">
                         <Redirect to="/home" />

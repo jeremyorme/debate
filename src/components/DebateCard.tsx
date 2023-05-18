@@ -68,7 +68,11 @@ const DebateCard: React.FC<ContainerProps> = ({
         <IonCard ref={ref}>
             <IonCardHeader>
                 <IonItem className="head-item" lines="none">
-                    <IonAvatar slot="start"><img src="https://ionicframework.com/docs/img/demos/avatar.svg" /></IonAvatar>
+                    <IonAvatar slot="start">
+                        <Link to={'/user/' + debate._identity.publicKey}>
+                            <img className="avatar" src="https://ionicframework.com/docs/img/demos/avatar.svg" />
+                        </Link>
+                    </IonAvatar>
                     <IonLabel color="medium"><strong>@{debate._identity.publicKey.slice(-8)}</strong> - Just now</IonLabel>
                     {debateStage != DebateStage.Ended && pageData.selfPublicKey == debate._identity.publicKey ? <IonButton slot="end" className="transition-button" onClick={() => onTransition()}>
                         <IonIcon icon={debateStage == DebateStage.Upcoming ? playCircleSharp : stopCircleSharp}></IonIcon>

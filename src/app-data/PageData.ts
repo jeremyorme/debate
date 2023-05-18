@@ -9,6 +9,7 @@ import { IPresentation } from "./IPresentation";
 import { IStartCode } from "./IStartCode";
 import { IVote, VoteDirection } from "./IVote";
 import { SubCollection } from "./SubCollection";
+import { IArchivedVote } from "./IArchivedVote";
 
 const everyoneAppend = {
     publicAccess: AccessRights.ReadWrite,
@@ -48,6 +49,8 @@ export class PageData {
     private _messageAgainstLikes: SubCollection<ILikes> = new SubCollection('debatelikes', 'messages-against', everyoneUpdateOwn);
     private _presentationLikes: SubCollection<ILikes> = new SubCollection('debatelikes', 'presentations', everyoneUpdateOwn);
 
+    private _archivedVotes: SubCollection<IArchivedVote> = new SubCollection('user', 'archivedvotes', everyoneAppend);
+
     init(db: IDb, selfPublicKey: string) {
         this._db = db;
         this._selfPublicKey = selfPublicKey;
@@ -64,6 +67,8 @@ export class PageData {
         this._messageForLikes.init(db, selfPublicKey);
         this._messageAgainstLikes.init(db, selfPublicKey);
         this._presentationLikes.init(db, selfPublicKey);
+
+        this._archivedVotes.init(db, selfPublicKey);
 
         this._callbacks.notify();
     }
@@ -89,6 +94,8 @@ export class PageData {
     get messageForLikes() { return this._messageForLikes; }
     get messageAgainstLikes() { return this._messageAgainstLikes; }
     get presentationLikes() { return this._presentationLikes; }
+
+    get archivedVotes() { return this._archivedVotes; }
 
     // Votes helpers
 

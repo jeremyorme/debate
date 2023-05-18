@@ -137,6 +137,15 @@ const HomePage: React.FC<ContainerProps> = ({ pageData }) => {
                 votesAgainst: voteTotals.votesAgainst
             });
 
+            // Update user voting history for each voter
+            pageData.votes.entries(id).map(async v => {
+                const voterId = v._identity.publicKey;
+                await pageData.archivedVotes.load(voterId);
+                const groupName = d.debate.groups[v.groupIdx].name;
+                pageData.archivedVotes.addEntry(voterId, { ...v, _id: id, groupName });
+                pageData.archivedVotes.close(voterId);
+            });
+
             pageData.archivedDebates.close(id);
             pageData.votes.close(id);
             pageData.presentations.close(id);
