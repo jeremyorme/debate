@@ -1,4 +1,4 @@
-import { IDbCollection } from "bonono-react";
+import { IDbCollection } from "bonono";
 import { Callbacks } from "./Callbacks";
 import { IDbEntry } from "./IDbEntry";
 

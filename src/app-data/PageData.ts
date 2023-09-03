@@ -1,4 +1,4 @@
-import { AccessRights, ConflictResolution, IDb } from "bonono-react";
+import { AccessRights, ConflictResolution, IDb } from "bonono";
 import { Callbacks } from "./Callbacks";
 import { Collection } from "./Collection";
 import { IArchivedDebate } from "./IArchivedDebate";

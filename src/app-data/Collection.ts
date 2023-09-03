@@ -1,4 +1,4 @@
-import { IDb, ICollectionOptions } from "bonono-react";
+import { IDb, ICollectionOptions } from "bonono";
 import { CollectionManager } from "./CollectionManager";
 
 export class Collection<TEntry>

@@ -1,4 +1,4 @@
-import { IDb, ICollectionOptions, AccessRights } from "bonono-react";
+import { IDb, ICollectionOptions, AccessRights } from "bonono";
 import { CollectionManager } from "./CollectionManager";
 import { IStartCode } from "./IStartCode";
 

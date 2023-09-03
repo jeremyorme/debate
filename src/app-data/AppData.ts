@@ -1,4 +1,4 @@
-import { IDb } from "bonono-react";
+import { IDb } from "bonono";
 import { PageData } from "./PageData";
 
 // Central point for accessing all the app's data
